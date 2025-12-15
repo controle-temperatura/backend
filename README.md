@@ -25,6 +25,19 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Environment
+
+Create a `.env` file in the project root with at least:
+
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/temperature_app
+JWT_SECRET=changeme
+# CLIENT_URL is optional while testing with Postman; set it for browsers
+# CLIENT_URL=http://localhost:3000
+```
+
+Authentication now uses HTTP-only cookies, so make sure `CLIENT_URL` matches the front-end origin (CORS is configured with credentials).
+
 ## Project setup
 
 ```bash
