@@ -10,6 +10,8 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const clientUrl = config.get<string>('CLIENT_URL');
 
+  app.setGlobalPrefix('api');
+
   app.enableCors({
     origin: clientUrl || true, // reflect request origin when testing (e.g., Postman)
     credentials: true,

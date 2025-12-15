@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ===== ENUNS =====
@@ -28,10 +27,22 @@ enum ReportType {
   CUSTOM
 }
 
+enum AlertType {
+  BELOW_MIN
+  ABOVE_MAX
+  NEXT_MIN
+  NEXT_MAX
+}
+
+enum AlertDanger {
+  CRITICAL
+  ALERT
+}
+
 // ===== MODELS =====
 
 model User {
-  id           String @id @default(cuid())
+  id           String @id @default(uuid())
   name         String
   email        String @unique
   passwordHash String
@@ -48,14 +59,12 @@ model User {
 }
 
 model Sector {
-  id   String @id @default(cuid())
+  id   String @id @default(uuid())
   name String
 
-  // responsible user
   responsibleUserId String?
   responsibleUser   User?   @relation(fields: [responsibleUserId], references: [id])
 
-  // relations
   foods         Food[]
   requiredTimes RequiredTimeSlot[]
 
@@ -63,7 +72,7 @@ model Sector {
 }
 
 model Food {
-  id   String @id @default(cuid())
+  id   String @id @default(uuid())
   name String
 
   sectorId String
@@ -76,7 +85,7 @@ model Food {
 }
 
 model TemperatureRecord {
-  id String @id @default(cuid())
+  id String @id @default(uuid())
 
   foodId String
   food   Food   @relation(fields: [foodId], references: [id])
@@ -85,8 +94,6 @@ model TemperatureRecord {
   user   User   @relation(fields: [userId], references: [id])
 
   temperature      Float
-  timestamp        DateTime
-  correctiveAction String?
 
   alert Alert?
 
@@ -94,18 +101,21 @@ model TemperatureRecord {
 }
 
 model Alert {
-  id       String  @id @default(cuid())
-  type     String
+  id       String  @id @default(uuid())
+  type     AlertType
+  danger   AlertDanger
   resolved Boolean @default(false)
 
   temperatureRecordId String?            @unique
   temperatureRecord   TemperatureRecord? @relation(fields: [temperatureRecordId], references: [id])
 
+  correctiveAction String?
+
   createdAt DateTime @default(now())
 }
 
 model RequiredTimeSlot {
-  id String @id @default(cuid())
+  id String @id @default(uuid())
 
   sectorId String
   sector   Sector @relation(fields: [sectorId], references: [id])
@@ -117,7 +127,7 @@ model RequiredTimeSlot {
 }
 
 model Report {
-  id     String     @id @default(cuid())
+  id     String     @id @default(uuid())
   type   ReportType
   period String
 

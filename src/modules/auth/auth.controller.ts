@@ -31,6 +31,14 @@ export class AuthController {
     const isProd = this.config.get<string>('NODE_ENV') === 'production';
     const sameSite = isProd ? 'none' : 'lax';
 
+    res.cookie('user_id', user.id, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite,
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     res.cookie('access_token', access_token, {
       httpOnly: true,
       secure: isProd,
