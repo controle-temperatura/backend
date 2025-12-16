@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ConfigModule } from '@nestjs/config';
 import { TemperatureRecordModule } from './modules/temperature-record/temperature-record.module';
+import { AlertsModule } from './modules/alerts/alerts.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { TemperatureRecordModule } from './modules/temperature-record/temperatur
     AuthModule, 
     UsersModule,
     TemperatureRecordModule,
+    AlertsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

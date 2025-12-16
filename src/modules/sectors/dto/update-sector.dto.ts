@@ -10,3 +10,4 @@ export class UpdateSectorDto {
   responsibleUserId?: string | null;
 }
 
+

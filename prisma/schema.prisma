@@ -55,6 +55,9 @@ model User {
   // reverse relation for Sector.responsibleUser
   responsibleSectors Sector[]
 
+  // reverse relation for Alert.resolvedBy
+  resolvedAlerts Alert[]
+
   createdAt DateTime @default(now())
 }
 
@@ -110,6 +113,11 @@ model Alert {
   temperatureRecord   TemperatureRecord? @relation(fields: [temperatureRecordId], references: [id])
 
   correctiveAction String?
+
+  resolvedById String?
+  resolvedBy   User?   @relation(fields: [resolvedById], references: [id])
+
+  resolvedAt DateTime?
 
   createdAt DateTime @default(now())
 }
