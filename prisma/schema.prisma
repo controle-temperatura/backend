@@ -22,6 +22,7 @@ enum TimeSlotType {
 
 enum ReportType {
   DAILY
+  WEEKLY
   MONTHLY
   CONFORMITY
   CUSTOM
