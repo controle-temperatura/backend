@@ -8,6 +8,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TemperatureRecordModule } from './modules/temperature-record/temperature-record.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { SectorsModule } from './modules/sectors/sectors.module';
+import { FoodsModule } from './modules/foods/foods.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { ReportsModule } from './modules/reports/reports.module';
     TemperatureRecordModule,
     AlertsModule,
     ReportsModule,
+    SectorsModule,
+    FoodsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

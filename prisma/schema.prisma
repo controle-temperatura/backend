@@ -52,6 +52,7 @@ model User {
   // relations
   recordsTemperature TemperatureRecord[]
   reports            Report[]
+  refreshTokens      RefreshToken[]
 
   // reverse relation for Sector.responsibleUser
   responsibleSectors Sector[]
@@ -146,4 +147,16 @@ model Report {
   fileUrl String
 
   createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
 }

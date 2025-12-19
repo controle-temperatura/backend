@@ -1,21 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReportType } from '@prisma/client';
-
-import * as dayjs from 'dayjs';
-import * as utc from 'dayjs/plugin/utc';
-import * as timezone from 'dayjs/plugin/timezone';
-import 'dayjs/locale/pt-br';
-
-const Dayjs = (dayjs as any).default || dayjs;
-const utcPlugin = (utc as any).default || utc;
-const timezonePlugin = (timezone as any).default || timezone;
-
-Dayjs.extend(utcPlugin);
-Dayjs.extend(timezonePlugin);
-
-Dayjs.locale('pt-br');
-Dayjs.tz.setDefault('America/Sao_Paulo');
+import dayjs from '../../common/utils/dayjs.config';
 
 @Injectable()
 export class ReportsService {
@@ -39,6 +25,14 @@ export class ReportsService {
             dbQueryFilters.createdAt = {
                 gte: startOfWeek,
                 lte: endOfWeek,
+            };
+        }
+
+        else if (type === ReportType.MONTHLY) {
+            const { startOfMonth, endOfMonth } = this.getMonthBoundaries(filters.month);
+            dbQueryFilters.createdAt = {
+                gte: startOfMonth,
+                lte: endOfMonth,
             };
         }
 
@@ -85,7 +79,7 @@ export class ReportsService {
     }
 
     private getDayBoundaries(date?: string | Date): { startOfDay: Date; endOfDay: Date } {
-        const targetDate = date ? Dayjs(date) : Dayjs();
+        const targetDate = date ? dayjs(date) : dayjs();
 
         if (!targetDate.isValid()) {
             throw new BadRequestException('Data inválida');
@@ -98,7 +92,7 @@ export class ReportsService {
     }
 
     private getWeekBoundaries(date?: string | Date): { startOfWeek: Date; endOfWeek: Date } {
-        const targetDate = date ? Dayjs(date) : Dayjs();
+        const targetDate = date ? dayjs(date) : dayjs();
 
         if (!targetDate.isValid()) {
             throw new BadRequestException('Data inválida');
@@ -110,4 +104,16 @@ export class ReportsService {
         return { startOfWeek, endOfWeek };
     }
 
+    private getMonthBoundaries(date?: string | Date): { startOfMonth: Date; endOfMonth: Date } {
+        const targetDate = date ? dayjs(date) : dayjs();
+
+        if (!targetDate.isValid()) {
+            throw new BadRequestException('Data inválida');
+        }
+        
+        const startOfMonth = targetDate.startOf('month').toDate();
+        const endOfMonth = targetDate.endOf('month').toDate();
+
+        return { startOfMonth, endOfMonth };
+    }
 }
