@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateTemperatureRecordDto } from './dto/create-temperature-record.dto';
+import { CreateTemperatureRecordsDto } from './dto/create-temperature-records.dto';
 import { AlertDanger, AlertType, Food, TemperatureRecord } from '@prisma/client';
 
 type TemperatureAlert = { type: AlertType; danger: AlertDanger };
 
 @Injectable()   
-export class TemperatureRecordService {
+export class TemperatureRecordsService {
     constructor(private readonly prisma: PrismaService) {}
 
     private async calcTemperatureErrorMargin(food: Food): Promise<number> {
@@ -40,7 +40,7 @@ export class TemperatureRecordService {
         return alertData;
     }
 
-    async create(dto: CreateTemperatureRecordDto, userId: string): Promise<TemperatureRecord> {
+    async create(dto: CreateTemperatureRecordsDto, userId: string): Promise<TemperatureRecord> {
         const food = await this.prisma.food.findUnique({ where: { id: dto.foodId } });
         if (!food) throw new NotFoundException('Alimento não encontrado');
 
@@ -71,3 +71,4 @@ export class TemperatureRecordService {
         })
     }
 }
+

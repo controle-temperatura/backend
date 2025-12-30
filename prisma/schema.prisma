@@ -40,6 +40,12 @@ enum AlertDanger {
   ALERT
 }
 
+enum ComplianceStatus {
+  COMPLIANT
+  PARTIALLY_COMPLIANT
+  NON_COMPLIANT
+}
+
 // ===== MODELS =====
 
 model User {
@@ -145,6 +151,8 @@ model Report {
   user   User   @relation(fields: [userId], references: [id])
 
   fileUrl String
+
+  complianceStatus ComplianceStatus
 
   createdAt DateTime @default(now())
 }

@@ -1,6 +1,6 @@
 import { IsNumber, IsUUID } from "class-validator";
 
-export class CreateTemperatureRecordDto {
+export class CreateTemperatureRecordsDto {
 
     @IsUUID()
     foodId: string;
