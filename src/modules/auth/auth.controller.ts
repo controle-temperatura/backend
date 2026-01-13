@@ -62,11 +62,11 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(
+    @Body() body: RefreshTokenDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    // Get refresh token from cookie or body
-    const refreshToken = req.cookies?.refresh_token || req.body?.refresh_token;
+    const refreshToken = req.cookies?.refresh_token || body.refresh_token;
     
     if (!refreshToken) {
       return res.status(401).json({ message: 'Token de atualização não fornecido' });
@@ -77,7 +77,6 @@ export class AuthController {
     const isProd = this.config.get<string>('NODE_ENV') === 'production';
     const sameSite = isProd ? 'none' : 'lax';
 
-    // Update cookies with new tokens
     res.cookie('access_token', access_token, {
       httpOnly: true,
       secure: isProd,
@@ -106,10 +105,8 @@ export class AuthController {
   ) {
     const refreshToken = req.cookies?.refresh_token;
     
-    // Remove refresh token from database
     await this.auth.logout(user.userId, refreshToken);
 
-    // Clear cookies
     res.clearCookie('access_token', { path: '/' });
     res.clearCookie('refresh_token', { path: '/' });
     res.clearCookie('user_id', { path: '/' });
@@ -123,10 +120,8 @@ export class AuthController {
     @User() user,
     @Res({ passthrough: true }) res: Response,
   ) {
-    // Remove all refresh tokens for this user (logout from all devices)
     await this.auth.logout(user.userId);
 
-    // Clear cookies
     res.clearCookie('access_token', { path: '/' });
     res.clearCookie('refresh_token', { path: '/' });
     res.clearCookie('user_id', { path: '/' });

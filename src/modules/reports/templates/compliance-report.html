@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            color: #000;
+            background: #fff;
+            line-height: 1.4;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .header-info {
+            font-size: 9pt;
+            color: #333;
+        }
+
+        .header-info p {
+            margin: 2px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 9pt;
+        }
+
+        thead {
+            background-color: #d3d3d3;
+        }
+
+        th {
+            font-weight: bold;
+            text-align: left;
+            padding: 6px 4px;
+            border: 1px solid #000;
+            font-size: 9pt;
+        }
+
+        td {
+            padding: 5px 4px;
+            border: 1px solid #000;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #000;
+            font-size: 8pt;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Compliance Report</h1>
+        <div class="header-info">
+            <p><strong>Período:</strong> {{period}}</p>
+            <p><strong>Data de Geração:</strong> {{generatedAt}}</p>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Data / Hora</th>
+                <th>Setor</th>
+                <th>Alimento</th>
+                <th>Temperatura Medida (°C)</th>
+                <th>Faixa Permitida (°C)</th>
+                <th>Status</th>
+                <th>Ação Corretiva</th>
+                <th>Responsável</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{rows}}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Relatório gerado automaticamente pelo Sistema de Controle de Temperatura</p>
+        <p>Este documento atende às normas de segurança alimentar e APPCC</p>
+    </div>
+</body>
+</html>
+
+
