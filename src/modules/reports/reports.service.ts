@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AlertDanger, AlertType, ComplianceStatus, ReportType } from '@prisma/client';
 import dayjs from '../../common/utils/dayjs.config';
 import puppeteer from 'puppeteer';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class ReportsService {
@@ -284,7 +286,34 @@ export class ReportsService {
         return status;
     }
 
-    async generateConformityReportPDF(filters: any): Promise<Buffer> {
+    private calculateComplianceStatusForPeriodReport(records: any[]): ComplianceStatus {
+        if (!records || records.length === 0) {
+            return ComplianceStatus.COMPLIANT;
+        }
+
+        const totalRecords = records.length;
+        const recordsWithAlerts = records.filter(r => r.alert);
+        const criticalAlerts = records.filter(r => r.alert?.danger === AlertDanger.CRITICAL && !r.alert?.resolved);
+        const unresolvedAlerts = records.filter(r => r.alert && !r.alert?.resolved);
+
+        if (criticalAlerts.length > 0) {
+            return ComplianceStatus.NON_COMPLIANT;
+        }
+
+        const alertPercentage = (recordsWithAlerts.length / totalRecords) * 100;
+
+        if (alertPercentage > 10) {
+            return ComplianceStatus.PARTIALLY_COMPLIANT;
+        }
+
+        if (unresolvedAlerts.length > 0) {
+            return ComplianceStatus.PARTIALLY_COMPLIANT;
+        }
+
+        return ComplianceStatus.COMPLIANT;
+    }
+
+    async generateConformityReportPDF(filters: any, userId: string): Promise<{ pdfBuffer: Buffer; report: any }> {
         const reportData = await this.createConformityReport(filters);
 
         if (reportData.content === 'Nenhum registro encontrado') {
@@ -313,7 +342,27 @@ export class ReportsService {
                 }
             });
 
-            return Buffer.from(pdfBuffer);
+            const uploadsDir = path.join(process.cwd(), 'uploads', 'reports');
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+            }
+
+            const filename = `relatorio-conformidade-${Date.now()}.pdf`;
+            const filePath = path.join(uploadsDir, filename);
+            fs.writeFileSync(filePath, pdfBuffer);
+
+            const period = this.getDateRangeText(filters);
+            const report = await this.prisma.report.create({
+                data: {
+                    type: ReportType.CONFORMITY,
+                    period,
+                    userId,
+                    fileUrl: `uploads/reports/${filename}`,
+                    complianceStatus: reportData.complianceStatus,
+                }
+            });
+
+            return { pdfBuffer: Buffer.from(pdfBuffer), report };
         } finally {
             await browser.close();
         }
@@ -606,7 +655,7 @@ export class ReportsService {
         return 'Todos os períodos';
     }
 
-    async generatePeriodReportPDF(type: ReportType, filters: any): Promise<Buffer> {
+    async generatePeriodReportPDF(type: ReportType, filters: any, userId: string): Promise<{ pdfBuffer: Buffer; report: any }> {
         const records = await this.create(type, filters);
 
         if (!records || records.length === 0) {
@@ -635,7 +684,35 @@ export class ReportsService {
                 }
             });
 
-            return Buffer.from(pdfBuffer);
+            const uploadsDir = path.join(process.cwd(), 'uploads', 'reports');
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+            }
+
+            const reportTypeNames = {
+                [ReportType.DAILY]: 'diario',
+                [ReportType.WEEKLY]: 'semanal',
+                [ReportType.MONTHLY]: 'mensal'
+            };
+            
+            const filename = `relatorio-${reportTypeNames[type]}-${Date.now()}.pdf`;
+            const filePath = path.join(uploadsDir, filename);
+            fs.writeFileSync(filePath, pdfBuffer);
+
+            const complianceStatus = this.calculateComplianceStatus(records);
+
+            const period = this.getPeriodText(type, filters);
+            const report = await this.prisma.report.create({
+                data: {
+                    type,
+                    period,
+                    userId,
+                    fileUrl: `uploads/reports/${filename}`,
+                    complianceStatus,
+                }
+            });
+
+            return { pdfBuffer: Buffer.from(pdfBuffer), report };
         } finally {
             await browser.close();
         }
@@ -666,7 +743,6 @@ export class ReportsService {
                 return sectorCompare;
             }
             
-            // If same sector, sort by date
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         });
 
@@ -911,5 +987,42 @@ export class ReportsService {
             default:
                 return 'N/A';
         }
+    }
+
+    async listReports(userId: string): Promise<any[]> {
+        return this.prisma.report.findMany({
+            where: { userId },
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        email: true,
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+    }
+
+    async getReportById(id: string): Promise<any> {
+        const report = await this.prisma.report.findUnique({
+            where: { id },
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        email: true,
+                    }
+                }
+            }
+        });
+
+        if (!report) {
+            throw new BadRequestException('Relatório não encontrado');
+        }
+
+        return report;
     }
 }

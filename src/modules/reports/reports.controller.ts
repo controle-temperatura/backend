@@ -1,8 +1,11 @@
-import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { ReportType } from '@prisma/client';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
+import { User } from '../../common/decorators/user.decorator';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Controller('reports')
 export class ReportsController {
@@ -13,23 +16,36 @@ export class ReportsController {
     async create(
         @Param('type') type: string,
         @Query() filters: any,
-        @Res() res: Response
+        @Res() res: Response,
+        @User() user: { userId: string }
     ) {
         const reportType = type.toUpperCase() as ReportType;
+        const userId = user.userId;
         
+        if (!Object.values(ReportType).includes(reportType)) {
+            throw new BadRequestException('Tipo de relatório inválido');
+        }
+
         if (filters.format === 'pdf') {
             let pdfBuffer: Buffer;
             let filename: string;
+            let savedReport: any;
 
             if (reportType === ReportType.CONFORMITY) {
-                pdfBuffer = await this.reportsService.generateConformityReportPDF(filters);
+                console.log('conformity');
+                const result = await this.reportsService.generateConformityReportPDF(filters, userId);
+                pdfBuffer = result.pdfBuffer;
+                savedReport = result.report;
                 filename = `relatorio-conformidade-${new Date().getTime()}.pdf`;
             } else if (
                 reportType === ReportType.DAILY || 
                 reportType === ReportType.WEEKLY || 
                 reportType === ReportType.MONTHLY
             ) {
-                pdfBuffer = await this.reportsService.generatePeriodReportPDF(reportType, filters);
+                console.log('period');
+                const result = await this.reportsService.generatePeriodReportPDF(reportType, filters, userId);
+                pdfBuffer = result.pdfBuffer;
+                savedReport = result.report;
                 
                 const reportNames = {
                     [ReportType.DAILY]: 'diario',
@@ -39,9 +55,11 @@ export class ReportsController {
                 
                 filename = `relatorio-${reportNames[reportType]}-${new Date().getTime()}.pdf`;
             } else {
-                const data = await this.reportsService.create(reportType, filters);
-                return res.json(data);
+                console.log(reportType);
+                throw new BadRequestException('Tipo de relatório inválido');
             }
+            
+            console.log('1')
             
             res.set({
                 'Content-Type': 'application/pdf',
@@ -55,5 +73,34 @@ export class ReportsController {
         
         const data = await this.reportsService.create(reportType, filters);
         return res.json(data);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('saved/list')
+    async listSavedReports(@User() user: any) {
+        const userId = user.sub;
+        return this.reportsService.listReports(userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('saved/:id')
+    async getReportFile(@Param('id') id: string, @Res() res: Response) {
+        const report = await this.reportsService.getReportById(id);
+        
+        const filePath = path.join(process.cwd(), report.fileUrl);
+        
+        if (!fs.existsSync(filePath)) {
+            throw new BadRequestException('Arquivo não encontrado');
+        }
+        
+        const pdfBuffer = fs.readFileSync(filePath);
+        
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${path.basename(report.fileUrl)}"`,
+            'Content-Length': pdfBuffer.length,
+        });
+        
+        res.end(pdfBuffer);
     }
 }
