@@ -286,33 +286,6 @@ export class ReportsService {
         return status;
     }
 
-    private calculateComplianceStatusForPeriodReport(records: any[]): ComplianceStatus {
-        if (!records || records.length === 0) {
-            return ComplianceStatus.COMPLIANT;
-        }
-
-        const totalRecords = records.length;
-        const recordsWithAlerts = records.filter(r => r.alert);
-        const criticalAlerts = records.filter(r => r.alert?.danger === AlertDanger.CRITICAL && !r.alert?.resolved);
-        const unresolvedAlerts = records.filter(r => r.alert && !r.alert?.resolved);
-
-        if (criticalAlerts.length > 0) {
-            return ComplianceStatus.NON_COMPLIANT;
-        }
-
-        const alertPercentage = (recordsWithAlerts.length / totalRecords) * 100;
-
-        if (alertPercentage > 10) {
-            return ComplianceStatus.PARTIALLY_COMPLIANT;
-        }
-
-        if (unresolvedAlerts.length > 0) {
-            return ComplianceStatus.PARTIALLY_COMPLIANT;
-        }
-
-        return ComplianceStatus.COMPLIANT;
-    }
-
     async generateConformityReportPDF(filters: any, userId: string): Promise<{ pdfBuffer: Buffer; report: any }> {
         const reportData = await this.createConformityReport(filters);
 

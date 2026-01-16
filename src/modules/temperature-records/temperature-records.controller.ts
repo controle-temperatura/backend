@@ -3,12 +3,16 @@ import { CreateTemperatureRecordsDto } from './dto/create-temperature-records.dt
 import { TemperatureRecordsService } from './temperature-records.service';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
 import { User } from 'src/common/decorators/user.decorator';
+import { Role } from '@prisma/client';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/role.decorator';
 
 @Controller('temperature-records')
 export class TemperatureRecordsController {
     constructor(private readonly temperatureRecordsService: TemperatureRecordsService) {}
 
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.COLABORATOR)
     @Post()
     create(@Body() dto: CreateTemperatureRecordsDto, @User() user: { userId: string }) {
         return this.temperatureRecordsService.create(dto, user.userId);

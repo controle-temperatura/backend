@@ -1,17 +1,20 @@
 import { BadRequestException, Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { ReportsService } from './reports.service';
-import { ReportType } from '@prisma/client';
+import { ReportType, Role } from '@prisma/client';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
 import { User } from '../../common/decorators/user.decorator';
 import * as path from 'path';
 import * as fs from 'fs';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/role.decorator';
 
 @Controller('reports')
 export class ReportsController {
     constructor(private readonly reportsService: ReportsService) {}
 
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
     @Get(':type')
     async create(
         @Param('type') type: string,
@@ -75,14 +78,16 @@ export class ReportsController {
         return res.json(data);
     }
 
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
     @Get('saved/list')
     async listSavedReports(@User() user: any) {
         const userId = user.sub;
         return this.reportsService.listReports(userId);
     }
 
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
     @Get('saved/:id')
     async getReportFile(@Param('id') id: string, @Res() res: Response) {
         const report = await this.reportsService.getReportById(id);
