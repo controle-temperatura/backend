@@ -998,4 +998,43 @@ export class ReportsService {
 
         return report;
     }
+
+    async updateTablePage(page: string, limit: string): Promise<any> {
+        const pageNumber = parseInt(page) || 1;
+        const skip = (pageNumber - 1) * Number(limit) as number;
+
+        const totalReports = await this.prisma.report.count();
+
+        const reports = await this.prisma.report.findMany({
+            skip,
+            take: Number(limit) as number,
+            select: {
+                type: true,
+                period: true,
+                createdAt: true,
+                user: { select: { name: true}},
+                id: true,
+                fileUrl: true,
+            }
+        });
+
+        const formattedReports = reports.map(report => ({
+            id: report.id,
+            type: report.type,
+            period: report.period,
+            user: report.user.name,
+            fileUrl: report.fileUrl,
+            createdAt: dayjs(report.createdAt).format('DD/MM HH:mm'),
+        }));
+        
+        return {
+            reports: formattedReports,
+            pagination: {
+                page: pageNumber,
+                limit: Number(limit) as number,
+                totalReports,
+                totalPages: Math.ceil(totalReports / Number(limit) as number),
+            }
+        }
+    }
 }

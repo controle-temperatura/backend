@@ -6,28 +6,28 @@ import { AppModule } from './app.module';
 import './common/utils/dayjs.config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule);
 
-  const config = app.get(ConfigService);
-  const clientUrl = config.get<string>('CLIENT_URL');
+    const config = app.get(ConfigService);
+    const clientUrl = config.get<string>('CLIENT_URL');
 
-  app.setGlobalPrefix('api');
+    app.setGlobalPrefix('api');
 
-  app.enableCors({
-    origin: clientUrl || true, // reflect request origin when testing (e.g., Postman)
-    credentials: true,
-  });
+    app.enableCors({
+        origin: clientUrl,
+        credentials: true,
+    });
 
-  app.use(cookieParser());
+    app.use(cookieParser());
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+        }),
+    );
 
-  await app.listen(3000);
+    await app.listen(3000);
 }
 bootstrap();

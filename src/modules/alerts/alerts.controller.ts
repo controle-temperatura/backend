@@ -18,10 +18,24 @@ export class AlertsController {
     constructor(private readonly alertsService: AlertsService) {}
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.ADMIN)
+    @Roles(Role.ADMIN, Role.AUDITOR)
     @Get()
-    findAll(@Query() filters: QueryFilters) {
+    findAll(@Query() filters: any) {
         return this.alertsService.findAll(filters);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
+    @Get('tables')
+    getForTable(@Query() filters: any) {
+        return this.alertsService.getForTable(filters);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
+    @Get('corrections')
+    getCorrections(@Query() filters: any) {
+        return this.alertsService.getCorrections(filters);
     }
 
     @Get(':id')

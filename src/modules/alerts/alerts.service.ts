@@ -71,6 +71,39 @@ export class AlertsService {
         const alert = await this.prisma.alert.findUnique({ where: { id } });
         if (!alert) throw new NotFoundException('Alerta não encontrado');
 
-        return this.prisma.alert.update({ where: { id }, data: { resolved: true, correctiveAction: dto.correctiveAction, resolvedBy: { connect: { id: userId } }, resolvedAt: new Date() } });
+        return this.prisma.alert.update({ where: { id }, data: { resolved: true, correctiveAction: dto.correctiveAction, correctedTemperature: dto.correctedTemperature, resolvedBy: { connect: { id: userId } }, resolvedAt: new Date() } });
+    }
+
+    async getCorrections(filters: any): Promise<Alert[]> {
+        const correctedAlerts = await this.prisma.alert.findMany({ 
+            where: { correctiveAction: { not: null } },
+            select: {
+                id: true,
+                temperatureRecord: {
+                    select: {
+                        food: {
+                            select: {
+                                name: true,
+                                sector: { select: { name: true }}
+                            }
+                        },
+                        createdAt: true,
+                        temperature: true
+                    }
+                },
+                correctiveAction: true,
+                correctedTemperature: true,
+                resolvedBy: { select: { name: true} }
+            }
+        });
+
+        return correctedAlerts;
+    }
+
+    async getForTable(filters: any): Promise<Alert[]> {
+        const pendingAlerts = await this.prisma.alert.findMany({
+            where: { resolved: false },
+            
+        })
     }
 }

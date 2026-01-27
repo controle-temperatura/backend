@@ -49,11 +49,12 @@ enum ComplianceStatus {
 // ===== MODELS =====
 
 model User {
-  id           String @id @default(uuid())
-  name         String
-  email        String @unique
-  passwordHash String
-  role         Role
+  id            String @id @default(uuid())
+  name          String
+  email         String @unique
+  passwordHash  String
+  role          Role
+  profilePicUrl String?
 
   // relations
   recordsTemperature TemperatureRecord[]
@@ -120,12 +121,12 @@ model Alert {
   temperatureRecordId String?            @unique
   temperatureRecord   TemperatureRecord? @relation(fields: [temperatureRecordId], references: [id])
 
-  correctiveAction String?
-
   resolvedById String?
   resolvedBy   User?   @relation(fields: [resolvedById], references: [id])
 
-  resolvedAt DateTime?
+  correctiveAction     String?
+  resolvedAt           DateTime?
+  correctedTemperature Float?
 
   createdAt DateTime @default(now())
 }

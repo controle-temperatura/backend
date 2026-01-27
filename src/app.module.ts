@@ -10,6 +10,8 @@ import { AlertsModule } from './modules/alerts/alerts.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SectorsModule } from './modules/sectors/sectors.module';
 import { FoodsModule } from './modules/foods/foods.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { FilterOptionsModule } from './modules/filter-options/filter-options.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { FoodsModule } from './modules/foods/foods.module';
     ReportsModule,
     SectorsModule,
     FoodsModule,
+    DashboardModule,
+    FilterOptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

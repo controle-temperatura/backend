@@ -54,6 +54,7 @@ export class UsersService {
         if (dto.name !== undefined) data.name = dto.name;
         if (dto.email !== undefined) data.email = dto.email;
         if (dto.role !== undefined) data.role = dto.role;
+        if (dto.profilePicUrl !== undefined) data.profilePicUrl = dto.profilePicUrl;
 
         if (dto.password !== undefined) {
             data.passwordHash = await bcrypt.hash(dto.password, 10);

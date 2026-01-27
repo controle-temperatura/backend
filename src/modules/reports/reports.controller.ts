@@ -35,7 +35,6 @@ export class ReportsController {
             let savedReport: any;
 
             if (reportType === ReportType.CONFORMITY) {
-                console.log('conformity');
                 const result = await this.reportsService.generateConformityReportPDF(filters, userId);
                 pdfBuffer = result.pdfBuffer;
                 savedReport = result.report;
@@ -45,7 +44,6 @@ export class ReportsController {
                 reportType === ReportType.WEEKLY || 
                 reportType === ReportType.MONTHLY
             ) {
-                console.log('period');
                 const result = await this.reportsService.generatePeriodReportPDF(reportType, filters, userId);
                 pdfBuffer = result.pdfBuffer;
                 savedReport = result.report;
@@ -58,11 +56,8 @@ export class ReportsController {
                 
                 filename = `relatorio-${reportNames[reportType]}-${new Date().getTime()}.pdf`;
             } else {
-                console.log(reportType);
                 throw new BadRequestException('Tipo de relatório inválido');
             }
-            
-            console.log('1')
             
             res.set({
                 'Content-Type': 'application/pdf',
@@ -107,5 +102,12 @@ export class ReportsController {
         });
         
         res.end(pdfBuffer);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
+    @Get('updateTablePage')
+    async updateTablePage(@Query('page') page: string, @Query('limit') limit: string) {
+        return this.reportsService.updateTablePage(page, limit);
     }
 }
