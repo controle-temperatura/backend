@@ -27,6 +27,10 @@ export class SectorsService {
         return sector;
     }
 
+    getForFilters(): Promise<any[]> {
+        return this.prisma.sector.findMany({ where: { active: true }, select: { id: true, name: true } });
+    }
+
     async update(id: string, dto: UpdateSectorDto): Promise<Sector> {
         const data: Prisma.SectorUpdateInput = {};
         if (dto.name !== undefined) data.name = dto.name;

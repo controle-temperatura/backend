@@ -27,15 +27,15 @@ export class AlertsController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN, Role.AUDITOR)
     @Get('tables')
-    getForTable(@Query() filters: any) {
-        return this.alertsService.getForTable(filters);
+    getForTable(@Query('date') date: any, @Query('page') page: string, @Query('limit') limit: string) {
+        return this.alertsService.getForTable(date, page, limit);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN, Role.AUDITOR)
     @Get('corrections')
-    getCorrections(@Query() filters: any) {
-        return this.alertsService.getCorrections(filters);
+    getCorrections(@Query('date') date: any, @Query('page') page: string, @Query('limit') limit: string) {
+        return this.alertsService.getCorrections(date, page, limit);
     }
 
     @Get(':id')

@@ -19,8 +19,51 @@ export class FoodsService {
         });
     }
 
-    async findAll(): Promise<Food[]> {
-        return this.prisma.food.findMany();
+    async findAll(filters: any): Promise<any> {
+        const { page, limit, ...searchFilters } = filters;
+
+        const pageNumber = parseInt(page) || 1;
+        const skip = (pageNumber - 1) * Number(limit) as number;
+
+        const totalCount = await this.prisma.food.count();
+        const activeCount = await this.prisma.food.count({ where: { active: true } });
+        const sectorsCount = await this.prisma.sector.count();
+
+
+        const foods = await this.prisma.food.findMany({
+            where: {
+                ...searchFilters,
+            },
+            skip,
+            take: Number(limit) as number,
+            include: {
+                sector: {
+                    select: { name: true }
+                }
+            },
+        });
+
+        const formattedFoods = foods.map((food) => ({
+            id: food.id,
+            name: food.name,
+            sector: food.sector.name,
+            tempMin: `${food.tempMin}°C`,
+            tempMax: `${food.tempMax}°C`,
+            active: food.active,
+        }))
+
+        return {
+            totalCount,
+            activeCount,
+            sectorsCount,
+            foods: formattedFoods,
+            pagination: {
+                page: pageNumber,
+                limit: Number(limit) as number,
+                totalRecords: totalCount,
+                totalPages: Math.ceil(totalCount / Number(limit) as number),
+            }
+        };
     }
 
     async findOne(id: string): Promise<Food> {

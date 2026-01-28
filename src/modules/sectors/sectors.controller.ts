@@ -6,6 +6,7 @@ import {
     Param,
     Patch,
     Post,
+    Query,
     UseGuards,
 } from '@nestjs/common';
 import { CreateSectorDto } from './dto/create-sector.dto';
@@ -30,6 +31,13 @@ export class SectorsController {
     @Get()
     findAll() {
         return this.sectorsService.findAll();
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    @Get('filters')
+    getForTable() {
+        return this.sectorsService.getForFilters();
     }
 
     @Get(':id')

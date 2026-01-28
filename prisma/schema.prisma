@@ -56,6 +56,8 @@ model User {
   role          Role
   profilePicUrl String?
 
+  active Boolean @default(true)
+
   // relations
   recordsTemperature TemperatureRecord[]
   reports            Report[]
@@ -74,6 +76,8 @@ model Sector {
   id   String @id @default(uuid())
   name String
 
+  active Boolean @default(true)
+
   responsibleUserId String?
   responsibleUser   User?   @relation(fields: [responsibleUserId], references: [id])
 
@@ -86,6 +90,8 @@ model Sector {
 model Food {
   id   String @id @default(uuid())
   name String
+
+  active Boolean @default(true)
 
   sectorId String
   sector   Sector @relation(fields: [sectorId], references: [id])

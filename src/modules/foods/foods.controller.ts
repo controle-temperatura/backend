@@ -6,6 +6,7 @@ import {
     Param,
     Patch,
     Post,
+    Query,
     UseGuards,
 } from '@nestjs/common';
 import { CreateFoodDto } from './dto/create-food.dto';
@@ -28,8 +29,8 @@ export class FoodsController {
     }
 
     @Get()
-    findAll() {
-        return this.foodsService.findAll();
+    findAll(@Query() filters: any) {
+        return this.foodsService.findAll(filters);
     }
 
     @Get(':id')
