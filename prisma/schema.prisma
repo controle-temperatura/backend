@@ -84,6 +84,8 @@ model Sector {
   foods         Food[]
   requiredTimes RequiredTimeSlot[]
 
+  measurementTimes String[] @default(["12:00"])
+
   createdAt DateTime @default(now())
 }
 

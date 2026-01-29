@@ -43,6 +43,7 @@ export class UsersService {
         const pageNumber = parseInt(page) || 1;
         const skip = (pageNumber - 1) * Number(limit) as number;
 
+        const totalCount = await this.prisma.user.count();
         const totalRecords = await this.prisma.user.count({ where: { ...searchFilters } });
         const totalColaborators = await this.prisma.user.count({ where: { ...searchFilters, role: Role.COLABORATOR } });
         const totalAdmins = await this.prisma.user.count({ where: { ...searchFilters, role: Role.ADMIN } });
@@ -76,7 +77,7 @@ export class UsersService {
             totalColaborators,
             totalAdmins,
             totalAuditors,
-            totalCount: totalRecords,
+            totalCount,
             pagination: {
                 page: pageNumber,
                 limit: Number(limit) as number,

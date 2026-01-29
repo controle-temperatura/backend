@@ -17,8 +17,60 @@ export class SectorsService {
         });
     }
 
-    async findAll(): Promise<Sector[]> {
-        return this.prisma.sector.findMany();
+    async findAll(filters: any): Promise<any> {
+        const { page, limit, ...searchFilters } = filters;
+
+        if (searchFilters.active) searchFilters.active = searchFilters.active === 'true';
+
+        const pageNumber = parseInt(page) || 1;
+        const skip = (pageNumber - 1) * Number(limit) as number;
+
+        const totalCount = await this.prisma.sector.count();
+        const totalRecords = await this.prisma.sector.count({ where: { ...searchFilters } });
+        const activeCount = await this.prisma.sector.count({ where: { active: true } });
+        
+        const responsibleUsers = await this.prisma.sector.groupBy({
+            by: ['responsibleUserId'],
+            where: { responsibleUserId: { not: null } },
+        });
+        const responsibleUsersCount = responsibleUsers.length;
+
+        const sectors = await this.prisma.sector.findMany({
+            where: { ...searchFilters },
+            skip,
+            take: Number(limit) as number,
+            select: {
+                id: true,
+                name: true,
+                measurementTimes: true,
+                responsibleUser: { select: { name: true } },
+                _count: { select: { foods: true } },
+                active: true
+            },
+        });
+
+        const formattedSectors = sectors.map((sector: any) => ({
+            id: sector.id,
+            name: sector.name,
+            measurementTimes: sector.measurementTimes,
+            responsibleUser: sector.responsibleUser?.name ?? null,
+            foodsCount: sector._count.foods,
+            active: sector.active
+        }))
+
+        return {
+            sectors: formattedSectors,
+            totalCount,
+            totalRecords,
+            activeCount,
+            responsibleUsersCount,
+            pagination: {
+                page: pageNumber,
+                limit: Number(limit) as number,
+                totalRecords,
+                totalPages: Math.ceil(totalRecords / Number(limit) as number)
+            }
+        };
     }
 
     async findOne(id: string): Promise<Sector> {

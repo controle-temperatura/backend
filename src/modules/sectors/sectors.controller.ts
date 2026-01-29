@@ -29,8 +29,8 @@ export class SectorsController {
     }
 
     @Get()
-    findAll() {
-        return this.sectorsService.findAll();
+    findAll(@Query() filters: any) {
+        return this.sectorsService.findAll(filters);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
