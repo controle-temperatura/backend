@@ -12,6 +12,7 @@ import { SectorsModule } from './modules/sectors/sectors.module';
 import { FoodsModule } from './modules/foods/foods.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { FilterOptionsModule } from './modules/filter-options/filter-options.module';
+import { CompanyModule } from './modules/company/company.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { FilterOptionsModule } from './modules/filter-options/filter-options.mod
     FoodsModule,
     DashboardModule,
     FilterOptionsModule,
+    CompanyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -22,13 +22,14 @@ export class FoodsService {
     async findAll(filters: any): Promise<any> {
         const { page, limit, ...searchFilters } = filters;
 
+        if (searchFilters.active) searchFilters.active = searchFilters.active === 'true';
+
         const pageNumber = parseInt(page) || 1;
         const skip = (pageNumber - 1) * Number(limit) as number;
 
         const totalCount = await this.prisma.food.count();
         const activeCount = await this.prisma.food.count({ where: { active: true } });
         const sectorsCount = await this.prisma.sector.count();
-
 
         const foods = await this.prisma.food.findMany({
             where: {

@@ -175,3 +175,16 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
 }
+
+model Company {
+  id        String @id @default(uuid())
+  name      String
+  shortName String
+  logoUrl   String
+
+  cnpj    String
+  address String
+
+  contactMail  String
+  contactPhone String
+}

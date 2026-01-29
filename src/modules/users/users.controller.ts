@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Query,
   Patch,
   Post,
   UseGuards,
@@ -28,8 +29,13 @@ export class UsersController {
     }
 
     @Get()
-    findAll() {
-        return this.usersService.findAll();
+    findAll(@Query() filters: any) {
+        return this.usersService.findAll(filters);
+    }
+
+    @Get('roles')
+    getRoles() {
+        return this.usersService.getRoles();
     }
 
     @Get(':id')

@@ -35,9 +35,55 @@ export class UsersService {
         return this.toSafeUser(user);
     }
 
-    async findAll(): Promise<SafeUser[]> {
-        const users = await this.prisma.user.findMany();
-        return users.map((user) => this.toSafeUser(user));
+    async findAll(filters: any): Promise<any> {
+        const { page, limit, ...searchFilters } = filters;
+
+        if (searchFilters.active) searchFilters.active = searchFilters.active === 'true';
+
+        const pageNumber = parseInt(page) || 1;
+        const skip = (pageNumber - 1) * Number(limit) as number;
+
+        const totalRecords = await this.prisma.user.count({ where: { ...searchFilters } });
+        const totalColaborators = await this.prisma.user.count({ where: { ...searchFilters, role: Role.COLABORATOR } });
+        const totalAdmins = await this.prisma.user.count({ where: { ...searchFilters, role: Role.ADMIN } });
+        const totalAuditors = await this.prisma.user.count({ where: { ...searchFilters, role: Role.AUDITOR } });
+
+        const users = await this.prisma.user.findMany({ 
+            where: { ...searchFilters }, 
+            skip, 
+            take: Number(limit) as number,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                active: true
+            }
+        });
+
+        const roleLables = { [Role.ADMIN]: 'Administrador', [Role.AUDITOR]: 'Auditor', [Role.COLABORATOR]: 'Colaborador' };
+
+        const formattedUsers = users.map((user) => ({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: roleLables[user.role],
+            active: user.active
+        }));
+
+        return {
+            users: formattedUsers,
+            totalColaborators,
+            totalAdmins,
+            totalAuditors,
+            totalCount: totalRecords,
+            pagination: {
+                page: pageNumber,
+                limit: Number(limit) as number,
+                totalRecords,
+                totalPages: Math.ceil(totalRecords / Number(limit) as number)
+            }
+        };
     }
 
     async findOne(id: string): Promise<SafeUser> {
@@ -88,5 +134,12 @@ export class UsersService {
 
             throw error;
         }
+    }
+
+    async getRoles(): Promise<any[]> {
+        const roles = Object.values(Role);
+
+        const roleLables = { [Role.ADMIN]: 'Administrador', [Role.AUDITOR]: 'Auditor', [Role.COLABORATOR]: 'Colaborador' };
+        return roles.map(role => ({ id: role, name: roleLables[role] }));
     }
 }
