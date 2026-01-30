@@ -24,12 +24,13 @@ export class ReportsController {
     ) {
         const reportType = type.toUpperCase() as ReportType;
         const userId = user.userId;
+        const format = String(filters.format || '').toLowerCase();
         
         if (!Object.values(ReportType).includes(reportType)) {
             throw new BadRequestException('Tipo de relatório inválido');
         }
 
-        if (filters.format === 'pdf') {
+        if (format === 'pdf') {
             let pdfBuffer: Buffer;
             let filename: string;
             let savedReport: any;
@@ -68,6 +69,26 @@ export class ReportsController {
             res.end(pdfBuffer);
             return;
         }
+
+        if (format === 'csv' || format === 'xlsx') {
+            const result = format === 'csv'
+                ? await this.reportsService.generateReportCSV(reportType, filters, userId)
+                : await this.reportsService.generateReportXLSX(reportType, filters, userId);
+
+            const contentTypes = {
+                csv: 'text/csv; charset=utf-8',
+                xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            };
+
+            res.set({
+                'Content-Type': contentTypes[format],
+                'Content-Disposition': `attachment; filename="${result.filename}"`,
+                'Content-Length': result.fileBuffer.length,
+            });
+
+            res.end(result.fileBuffer);
+            return;
+        }
         
         const data = await this.reportsService.create(reportType, filters);
         return res.json(data);
@@ -93,15 +114,22 @@ export class ReportsController {
             throw new BadRequestException('Arquivo não encontrado');
         }
         
-        const pdfBuffer = fs.readFileSync(filePath);
+        const fileBuffer = fs.readFileSync(filePath);
+        const extension = path.extname(report.fileUrl).toLowerCase();
+        const contentTypes = {
+            '.pdf': 'application/pdf',
+            '.csv': 'text/csv; charset=utf-8',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        };
+        const contentType = contentTypes[extension] ?? 'application/octet-stream';
         
         res.set({
-            'Content-Type': 'application/pdf',
+            'Content-Type': contentType,
             'Content-Disposition': `attachment; filename="${path.basename(report.fileUrl)}"`,
-            'Content-Length': pdfBuffer.length,
+            'Content-Length': fileBuffer.length,
         });
         
-        res.end(pdfBuffer);
+        res.end(fileBuffer);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)

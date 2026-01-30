@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AlertDanger, AlertType, ComplianceStatus, ReportType } from '@prisma/client';
 import dayjs from '../../common/utils/dayjs.config';
 import puppeteer from 'puppeteer';
+import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -19,6 +20,159 @@ export class ReportsService {
         }
 
         return replaces[alertType];
+    }
+
+    private getAlertStatus(record: any): string {
+        if (!record?.alert) {
+            return 'Normal';
+        }
+
+        const isCritical = record.alert?.danger === AlertDanger.CRITICAL;
+        const resolved = record.alert?.resolved;
+
+        if (isCritical) {
+            return resolved ? 'Crítico - Resolvido' : 'Crítico - Pendente';
+        }
+
+        return resolved ? 'Alerta - Resolvido' : 'Alerta - Pendente';
+    }
+
+    private sortRecords(records: any[]): any[] {
+        return [...records].sort((a, b) => {
+            const sectorA = a.food?.sector?.name || 'Zzz';
+            const sectorB = b.food?.sector?.name || 'Zzz';
+            const sectorCompare = sectorA.localeCompare(sectorB);
+            
+            if (sectorCompare !== 0) {
+                return sectorCompare;
+            }
+            
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+    }
+
+    private buildReportRows(records: any[]): Record<string, string>[] {
+        return this.sortRecords(records).map(record => ({
+            'Data/Hora': dayjs(record.createdAt).format('DD/MM/YYYY HH:mm'),
+            'Setor': record.food?.sector?.name || 'N/A',
+            'Alimento': record.food?.name || 'N/A',
+            'Temperatura': record.temperature != null ? record.temperature.toFixed(1) : 'N/A',
+            'Status': this.getAlertStatus(record),
+            'Responsável': record.user?.name || 'N/A',
+            'Ação Corretiva': record.alert?.correctiveAction || 'N/A',
+        }));
+    }
+
+    private toCsv(rows: Record<string, string>[], headers: string[]): string {
+        const escapeValue = (value: string | undefined) => {
+            const safeValue = value ?? '';
+            const needsQuotes = /[",\n\r]/.test(safeValue);
+            const escaped = safeValue.replace(/"/g, '""');
+            return needsQuotes ? `"${escaped}"` : escaped;
+        };
+
+        const headerLine = headers.join(',');
+        const dataLines = rows.map(row => headers.map(header => escapeValue(row[header])).join(','));
+        return [headerLine, ...dataLines].join('\n');
+    }
+
+    private getReportTypeSlug(type: ReportType): string {
+        const reportTypeNames = {
+            [ReportType.DAILY]: 'diario',
+            [ReportType.WEEKLY]: 'semanal',
+            [ReportType.MONTHLY]: 'mensal',
+            [ReportType.CONFORMITY]: 'conformidade',
+            [ReportType.CUSTOM]: 'personalizado',
+        };
+
+        return reportTypeNames[type] ?? type.toLowerCase();
+    }
+
+    private getReportPeriodText(type: ReportType, filters: any): string {
+        if (type === ReportType.CONFORMITY) {
+            return this.getDateRangeText(filters);
+        }
+
+        return this.getPeriodText(type, filters);
+    }
+
+    private async fetchConformityRecords(filters: any): Promise<any[]> {
+        const dbQueryFilters: any = {}
+
+        if (filters.sectorId) {
+            dbQueryFilters.food = {
+                sectorId: filters.sectorId,
+            };
+        }
+
+        if (filters.date) {
+            const { startOfDay, endOfDay } = this.getDayBoundaries(filters.date);
+            dbQueryFilters.createdAt = {
+                gte: startOfDay,
+                lte: endOfDay,
+            };
+        }
+
+        if (filters.startDate && filters.endDate) {
+            const startDate = dayjs(filters.startDate);
+            const endDate = dayjs(filters.endDate);
+
+            if (!startDate.isValid() || !endDate.isValid()) {
+                throw new BadRequestException('Data inválida');
+            }
+
+            dbQueryFilters.createdAt = {
+                gte: startDate,
+                lte: endDate,
+            };
+        }
+        
+        return this.prisma.temperatureRecord.findMany({
+            where: dbQueryFilters,
+            include: {
+                food: {
+                    select: {
+                        name: true,
+                        tempMin: true,
+                        tempMax: true,
+                        sector: {
+                            select: {
+                                name: true,
+                            }
+                        }
+                    }
+                },
+                user: {
+                    select: {
+                        name: true,
+                        role: true
+                    }
+                },
+                alert: {
+                    select: {
+                        type: true,
+                        danger: true,
+                        resolved: true,
+                        resolvedAt: true,
+                        resolvedById: true,
+                        resolvedBy: {
+                            select: {
+                                name: true,
+                            }
+                        },
+                        correctiveAction: true,
+                    }
+                },
+            }
+        });
+    }
+
+    private async getReportRecords(type: ReportType, filters: any): Promise<any[]> {
+        if (type === ReportType.CONFORMITY) {
+            return this.fetchConformityRecords(filters);
+        }
+
+        return this.create(type, filters);
     }
 
     async create(type: ReportType, filters: any): Promise<any> {
@@ -97,7 +251,7 @@ export class ReportsService {
                 },
             },
             orderBy: {
-                createdAt: 'asc'
+                createdAt: 'desc'
             }
         });
 
@@ -105,74 +259,7 @@ export class ReportsService {
     }
 
     async createConformityReport(filters: any): Promise<any> {
-        const dbQueryFilters: any = {}
-
-        if (filters.sectorId) {
-            dbQueryFilters.food = {
-                sectorId: filters.sectorId,
-            };
-        }
-
-        if (filters.date) {
-            const { startOfDay, endOfDay } = this.getDayBoundaries(filters.date);
-            dbQueryFilters.createdAt = {
-                gte: startOfDay,
-                lte: endOfDay,
-            };
-        }
-
-        if (filters.startDate && filters.endDate) {
-            const startDate = dayjs(filters.startDate);
-            const endDate = dayjs(filters.endDate);
-
-            if (!startDate.isValid() || !endDate.isValid()) {
-                throw new BadRequestException('Data inválida');
-            }
-
-            dbQueryFilters.createdAt = {
-                gte: startDate,
-                lte: endDate,
-            };
-        }
-        
-        const records = await this.prisma.temperatureRecord.findMany({
-            where: dbQueryFilters,
-            include: {
-                food: {
-                    select: {
-                        name: true,
-                        tempMin: true,
-                        tempMax: true,
-                        sector: {
-                            select: {
-                                name: true,
-                            }
-                        }
-                    }
-                },
-                user: {
-                    select: {
-                        name: true,
-                        role: true
-                    }
-                },
-                alert: {
-                    select: {
-                        type: true,
-                        danger: true,
-                        resolved: true,
-                        resolvedAt: true,
-                        resolvedById: true,
-                        resolvedBy: {
-                            select: {
-                                name: true,
-                            }
-                        },
-                        correctiveAction: true,
-                    }
-                },
-            }
-        });
+        const records = await this.fetchConformityRecords(filters);
 
         if (records.length === 0) {
             return {
@@ -332,6 +419,7 @@ export class ReportsService {
                     userId,
                     fileUrl: `uploads/reports/${filename}`,
                     complianceStatus: reportData.complianceStatus,
+                    format: 'PDF'
                 }
             });
 
@@ -682,6 +770,7 @@ export class ReportsService {
                     userId,
                     fileUrl: `uploads/reports/${filename}`,
                     complianceStatus,
+                    format: 'PDF'
                 }
             });
 
@@ -689,6 +778,83 @@ export class ReportsService {
         } finally {
             await browser.close();
         }
+    }
+
+    async generateReportCSV(type: ReportType, filters: any, userId: string): Promise<{ fileBuffer: Buffer; report: any; filename: string }> {
+        const records = await this.getReportRecords(type, filters);
+
+        if (!records || records.length === 0) {
+            throw new BadRequestException('Nenhum registro encontrado para gerar o relatório');
+        }
+
+        const rows = this.buildReportRows(records);
+        const headers = Object.keys(rows[0] ?? {});
+        const csvContent = this.toCsv(rows, headers);
+        const csvBuffer = Buffer.from(csvContent, 'utf8');
+
+        const uploadsDir = path.join(process.cwd(), 'uploads', 'reports');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        const filename = `relatorio-${this.getReportTypeSlug(type)}-${Date.now()}.csv`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, csvBuffer);
+
+        const complianceStatus = this.calculateComplianceStatus(records);
+        const period = this.getReportPeriodText(type, filters);
+        const report = await this.prisma.report.create({
+            data: {
+                type,
+                period,
+                userId,
+                fileUrl: `uploads/reports/${filename}`,
+                complianceStatus,
+                format: 'CSV'
+            }
+        });
+
+        return { fileBuffer: csvBuffer, report, filename };
+    }
+
+    async generateReportXLSX(type: ReportType, filters: any, userId: string): Promise<{ fileBuffer: Buffer; report: any; filename: string }> {
+        const records = await this.getReportRecords(type, filters);
+
+        if (!records || records.length === 0) {
+            throw new BadRequestException('Nenhum registro encontrado para gerar o relatório');
+        }
+
+        const rows = this.buildReportRows(records);
+        const headers = Object.keys(rows[0] ?? {});
+        const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatorio');
+
+        const xlsxBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+        const uploadsDir = path.join(process.cwd(), 'uploads', 'reports');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        const filename = `relatorio-${this.getReportTypeSlug(type)}-${Date.now()}.xlsx`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, xlsxBuffer);
+
+        const complianceStatus = this.calculateComplianceStatus(records);
+        const period = this.getReportPeriodText(type, filters);
+        const report = await this.prisma.report.create({
+            data: {
+                type,
+                period,
+                userId,
+                fileUrl: `uploads/reports/${filename}`,
+                complianceStatus,
+                format: 'XLSX'
+            }
+        });
+
+        return { fileBuffer: xlsxBuffer, report, filename };
     }
 
     private generatePeriodReportHTML(type: ReportType, records: any[], filters: any): string {
@@ -707,25 +873,11 @@ export class ReportsService {
         const criticalAlerts = records.filter(r => r.alert?.danger === AlertDanger.CRITICAL).length;
         const resolvedAlerts = records.filter(r => r.alert?.resolved).length;
 
-        const sortedRecords = [...records].sort((a, b) => {
-            const sectorA = a.food?.sector?.name || 'Zzz';
-            const sectorB = b.food?.sector?.name || 'Zzz';
-            const sectorCompare = sectorA.localeCompare(sectorB);
-            
-            if (sectorCompare !== 0) {
-                return sectorCompare;
-            }
-            
-            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        });
+        const sortedRecords = this.sortRecords(records);
 
         const recordsHTML = sortedRecords.map(record => {
             const hasAlert = !!record.alert;
-            const alertStatus = hasAlert 
-                // ? (record.alert.resolved ? 'Resolvido' : record.alert.danger === AlertDanger.CRITICAL ? 'Crítico' : 'Alerta')
-                // : 'Normal';
-                ? record.alert.danger === AlertDanger.CRITICAL ? record.alert?.resolved ? 'Crítico - Resolvido' : 'Crítico - Pendente' : record.alert?.resolved ? 'Alerta - Resolvido' : 'Alerta - Pendente'
-                : 'Normal';
+            const alertStatus = this.getAlertStatus(record);
             
             const rowClass = hasAlert 
                 ? (record.alert?.danger === AlertDanger.CRITICAL ? 'critical-row' : 'alert-row')

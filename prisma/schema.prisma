@@ -163,6 +163,8 @@ model Report {
 
   complianceStatus ComplianceStatus
 
+  format String @default("PDF")
+
   createdAt DateTime @default(now())
 }
 

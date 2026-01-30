@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTemperatureRecordsDto } from './dto/create-temperature-records.dto';
 import { AlertDanger, AlertType, Food, TemperatureRecord } from '@prisma/client';
 import { getDayBoundaries } from 'src/common/utils/date.utils';
+import { calcDeviation } from 'src/common/utils/deviation.utils';
 import Dayjs from 'src/common/utils/dayjs.config';
 
 type TemperatureAlert = { type: AlertType; danger: AlertDanger };
@@ -81,6 +82,59 @@ export class TemperatureRecordsService {
         });
     }
 
+    async findOne(id: string): Promise<any> {
+        const record = await this.prisma.temperatureRecord.findUnique({ 
+            where: { id },
+            include: {
+                food: { select: { 
+                    name: true, 
+                    sector: { select: { name: true }},
+                    tempMin: true,
+                    tempMax: true,
+                }},
+                user: { select: { name: true }},
+                alert: { select: { 
+                    danger: true, 
+                    type: true, 
+                    resolved: true, 
+                    correctedTemperature: true,
+                    resolvedAt: true, 
+                    resolvedBy: { select: { name: true }}, 
+                    correctiveAction: true,
+                    id: true
+                }},
+            }
+        });
+        if (!record) throw new NotFoundException('Registro de temperatura não encontrado');
+
+        const alertStatusLabels: any = {
+            [AlertDanger.CRITICAL]: 'Crítico',
+            [AlertDanger.ALERT]: 'Alerta',
+        }
+
+        const formattedRecord = {
+            id: record.id,
+            food: record.food.name,
+            defaultInterval: `${record.food.tempMin}°C - ${record.food.tempMax}°C`,
+            deviation: `${calcDeviation(record.temperature, record.food.tempMin, record.food.tempMax).toFixed(1)}°C`,
+            sector: record.food.sector.name,
+            user: record.user.name,
+            temperature: `${record.temperature.toFixed(1)}°C`,
+            alert: record.alert?.type,
+            status: record.alert?.danger,
+            statusLabel: alertStatusLabels[record?.alert?.danger as AlertDanger],
+            correctedTemperature: record.alert?.correctedTemperature ? `${record.alert?.correctedTemperature.toFixed(1)}°C` : null,
+            resolved: record.alert?.resolved,
+            resolvedAt: record.alert?.resolvedAt ? Dayjs(record.alert?.resolvedAt).format('DD/MM HH:mm') : null,
+            resolvedBy: record.alert?.resolvedBy?.name,
+            correctiveAction: record.alert?.correctiveAction,
+            createdAt: Dayjs(record.createdAt).format('DD/MM HH:mm'),
+            alertId: record.alert?.id,
+        }
+
+        return formattedRecord;
+    }
+
     async getForTable(filters: any): Promise<any> {
         const { page, limit, ...searchFilters } = filters
 
@@ -101,7 +155,7 @@ export class TemperatureRecordsService {
                 food: { select: { name: true, sector: { select: { name: true }}}},
                 user: { select: { name: true }},
                 temperature: true,
-                alert: { select: { danger: true }},
+                alert: { select: { danger: true, resolved: true }},
                 createdAt: true,
             },
             orderBy: { createdAt: 'desc' },
@@ -115,10 +169,13 @@ export class TemperatureRecordsService {
             const status = hasAlert ? (record.alert?.danger === AlertDanger.CRITICAL ? 'Crítico' : 'Alerta') : 'Ok';
             
             return {
+                id: record.id,
                 food: record.food.name,
                 sector: record.food.sector.name,
                 user: record.user?.name,
-                temperature: record.temperature,
+                temperature: `${record.temperature.toFixed(1)}°C`,
+                resolved: record.alert?.resolved,
+                alert: !!record.alert,
                 status,
                 createdAt: Dayjs(record.createdAt).format('DD/MM HH:mm'),
             }

@@ -46,6 +46,7 @@ export class AlertsController {
     @UseGuards(JwtAuthGuard)
     @Patch(':id/resolve')
     resolve(@Param('id') id: string, @Body() dto: ResolveAlertDto, @User() user: { userId: string }) {
+        console.log(id)
         return this.alertsService.resolve(id, dto, user.userId);
     }
 }

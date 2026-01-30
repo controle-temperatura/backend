@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { CreateTemperatureRecordsDto } from './dto/create-temperature-records.dto';
 import { TemperatureRecordsService } from './temperature-records.service';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
@@ -29,6 +29,13 @@ export class TemperatureRecordsController {
     @Get('tables')
     getForTable(@Query() filters: any) {
         return this.temperatureRecordsService.getForTable(filters);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.temperatureRecordsService.findOne(id);
     }
 }
 
