@@ -13,6 +13,7 @@ import { FoodsModule } from './modules/foods/foods.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { FilterOptionsModule } from './modules/filter-options/filter-options.module';
 import { CompanyModule } from './modules/company/company.module';
+import { MailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CompanyModule } from './modules/company/company.module';
     DashboardModule,
     FilterOptionsModule,
     CompanyModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

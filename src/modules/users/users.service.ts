@@ -5,7 +5,7 @@ import {
 import { Prisma, Role, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto, PasswordType } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 type SafeUser = Omit<User, 'passwordHash'>;
@@ -20,7 +20,19 @@ export class UsersService {
         return rest;
     }
 
+    private async generatePassword(): Promise<string> {
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
     async create(dto: CreateUserDto): Promise<SafeUser> {
+        
+        if (dto.passwordType === PasswordType.AUTO) {
+            const password = await this.generatePassword();
+            dto.password = password;
+
+            // send email with password
+        } 
+
         const passwordHash = await bcrypt.hash(dto.password, 10);
 
         const user = await this.prisma.user.create({
