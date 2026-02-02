@@ -15,6 +15,51 @@ export class ReportsController {
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN, Role.AUDITOR)
+    @Get('updateTablePage')
+    async updateTablePage(@Query('page') page: string, @Query('limit') limit: string) {
+        return this.reportsService.updateTablePage(page, limit);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
+    @Get('saved/list')
+    async listSavedReports(@User() user: any) {
+        const userId = user.sub;
+        return this.reportsService.listReports(userId);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
+    @Get('saved/:id')
+    async getReportFile(@Param('id') id: string, @Res() res: Response) {
+        const report = await this.reportsService.getReportById(id);
+        
+        const filePath = path.join(process.cwd(), report.fileUrl);
+        
+        if (!fs.existsSync(filePath)) {
+            throw new BadRequestException('Arquivo não encontrado');
+        }
+        
+        const fileBuffer = fs.readFileSync(filePath);
+        const extension = path.extname(report.fileUrl).toLowerCase();
+        const contentTypes = {
+            '.pdf': 'application/pdf',
+            '.csv': 'text/csv; charset=utf-8',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        };
+        const contentType = contentTypes[extension] ?? 'application/octet-stream';
+        
+        res.set({
+            'Content-Type': contentType,
+            'Content-Disposition': `attachment; filename="${path.basename(report.fileUrl)}"`,
+            'Content-Length': fileBuffer.length,
+        });
+        
+        res.end(fileBuffer);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
     @Get(':type')
     async create(
         @Param('type') type: string,
@@ -92,50 +137,5 @@ export class ReportsController {
         
         const data = await this.reportsService.create(reportType, filters);
         return res.json(data);
-    }
-
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.ADMIN, Role.AUDITOR)
-    @Get('saved/list')
-    async listSavedReports(@User() user: any) {
-        const userId = user.sub;
-        return this.reportsService.listReports(userId);
-    }
-
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.ADMIN, Role.AUDITOR)
-    @Get('saved/:id')
-    async getReportFile(@Param('id') id: string, @Res() res: Response) {
-        const report = await this.reportsService.getReportById(id);
-        
-        const filePath = path.join(process.cwd(), report.fileUrl);
-        
-        if (!fs.existsSync(filePath)) {
-            throw new BadRequestException('Arquivo não encontrado');
-        }
-        
-        const fileBuffer = fs.readFileSync(filePath);
-        const extension = path.extname(report.fileUrl).toLowerCase();
-        const contentTypes = {
-            '.pdf': 'application/pdf',
-            '.csv': 'text/csv; charset=utf-8',
-            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        };
-        const contentType = contentTypes[extension] ?? 'application/octet-stream';
-        
-        res.set({
-            'Content-Type': contentType,
-            'Content-Disposition': `attachment; filename="${path.basename(report.fileUrl)}"`,
-            'Content-Length': fileBuffer.length,
-        });
-        
-        res.end(fileBuffer);
-    }
-
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.ADMIN, Role.AUDITOR)
-    @Get('updateTablePage')
-    async updateTablePage(@Query('page') page: string, @Query('limit') limit: string) {
-        return this.reportsService.updateTablePage(page, limit);
     }
 }

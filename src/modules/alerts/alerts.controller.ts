@@ -38,6 +38,8 @@ export class AlertsController {
         return this.alertsService.getCorrections(date, page, limit);
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN, Role.AUDITOR)
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.alertsService.findOne(id);

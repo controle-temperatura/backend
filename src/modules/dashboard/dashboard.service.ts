@@ -60,6 +60,7 @@ export class DashboardService {
         const reports = await this.prisma.report.findMany({
             skip,
             take: Number(tableLimit) as number,
+            orderBy: { createdAt: 'desc' },
             select: {
                 type: true,
                 period: true,
@@ -67,6 +68,7 @@ export class DashboardService {
                 user: { select: { name: true}},
                 id: true,
                 fileUrl: true,
+                format: true
             }
         });
 
@@ -127,6 +129,7 @@ export class DashboardService {
             user: report.user.name,
             fileUrl: report.fileUrl,
             createdAt: Dayjs(report.createdAt).format('DD/MM HH:mm'),
+            format: report.format,
         }))
 
         const data = { 
@@ -152,6 +155,7 @@ export class DashboardService {
             select: {
                 danger: true,
                 resolved: true,
+                correctedTemperature: true,
                 temperatureRecord: {
                     select: {
                         food: {
@@ -191,15 +195,15 @@ export class DashboardService {
         ]
         
         alerts.forEach(alert => {
-            if (alert.danger === AlertDanger.CRITICAL) {
+            if (alert.danger === AlertDanger.CRITICAL && !alert.resolved) {
                 const criticalAlert = groupedAlerts.find(alert => alert.type === "CRITICAL");
                 criticalAlert?.data.push({ key: alert.temperatureRecord?.food.name, value: alert.temperatureRecord?.temperature.toFixed(1) + '°C' });
-            } else if (alert.danger === AlertDanger.ALERT) {
+            } else if (alert.danger === AlertDanger.ALERT && !alert.resolved) {
                 const alertAlert = groupedAlerts.find(alert => alert.type === "ALERT");
                 alertAlert?.data.push({ key: alert.temperatureRecord?.food.name, value: alert.temperatureRecord?.temperature.toFixed(1) + '°C' });
             } else if (alert.resolved) {
                 const resolvedAlert = groupedAlerts.find(alert => alert.type === "RESOLVED");
-                resolvedAlert?.data.push({ key: alert.temperatureRecord?.food.name, value: alert.temperatureRecord?.temperature.toFixed(1) + '°C' });
+                resolvedAlert?.data.push({ key: alert.temperatureRecord?.food.name, value: alert.correctedTemperature?.toFixed(1) + '°C' });
             } 
         });
 

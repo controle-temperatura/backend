@@ -1160,6 +1160,7 @@ export class ReportsService {
         const reports = await this.prisma.report.findMany({
             skip,
             take: Number(limit) as number,
+            orderBy: { createdAt: 'desc' },
             select: {
                 type: true,
                 period: true,
@@ -1167,6 +1168,7 @@ export class ReportsService {
                 user: { select: { name: true}},
                 id: true,
                 fileUrl: true,
+                format: true
             }
         });
 
@@ -1177,6 +1179,7 @@ export class ReportsService {
             user: report.user.name,
             fileUrl: report.fileUrl,
             createdAt: dayjs(report.createdAt).format('DD/MM HH:mm'),
+            format: report.format,
         }));
         
         return {
@@ -1184,7 +1187,7 @@ export class ReportsService {
             pagination: {
                 page: pageNumber,
                 limit: Number(limit) as number,
-                totalReports,
+                totalRecords: totalReports,
                 totalPages: Math.ceil(totalReports / Number(limit) as number),
             }
         }
