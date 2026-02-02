@@ -36,8 +36,8 @@ export class SectorsController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN)
     @Get('filters')
-    getForTable() {
-        return this.sectorsService.getForFilters();
+    getForTable(@Query('foodsCount') foodsCount: string) {
+        return this.sectorsService.getForFilters(foodsCount);
     }
 
     @Get(':id')

@@ -79,7 +79,11 @@ export class SectorsService {
         return sector;
     }
 
-    getForFilters(): Promise<any[]> {
+    getForFilters(foodsCount: string): Promise<any[]> {
+        const needsFoodsCount = foodsCount === 'true';
+        if (needsFoodsCount) {
+            return this.prisma.sector.findMany({ where: { active: true }, select: { id: true, name: true, _count: { select: { foods: true } } } });
+        }
         return this.prisma.sector.findMany({ where: { active: true }, select: { id: true, name: true } });
     }
 

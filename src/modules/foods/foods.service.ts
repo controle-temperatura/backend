@@ -77,13 +77,14 @@ export class FoodsService {
 
     async update(id: string, dto: UpdateFoodDto): Promise<Food> {
         const data: Prisma.FoodUpdateInput = {};
-
+        
         if (dto.name !== undefined) data.name = dto.name;
         if (dto.tempMin !== undefined) data.tempMin = dto.tempMin;
         if (dto.tempMax !== undefined) data.tempMax = dto.tempMax;
         if (dto.sectorId !== undefined) {
             data.sector = { connect: { id: dto.sectorId } };
         }
+        if (dto.active !== undefined) data.active = dto.active;
 
         try {
             return await this.prisma.food.update({
