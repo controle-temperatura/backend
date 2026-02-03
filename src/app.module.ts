@@ -5,6 +5,7 @@ import { PrismaModule } from './modules/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ConfigModule } from '@nestjs/config';
+import mailConfig from 'src/modules/mail/mail.config';
 import { TemperatureRecordsModule } from './modules/temperature-records/temperature-records.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { ReportsModule } from './modules/reports/reports.module';
@@ -17,7 +18,7 @@ import { MailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), 
+    ConfigModule.forRoot({ isGlobal: true, load: [mailConfig] }), 
     PrismaModule, 
     AuthModule, 
     UsersModule,

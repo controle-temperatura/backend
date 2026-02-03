@@ -1,18 +1,25 @@
 import {
+    BadRequestException,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
 import { Prisma, Role, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateUserDto, PasswordType } from './dto/create-user.dto';
+import { MailService } from '../mail/mail.service';
+import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreatePasswordDto } from './dto/create-password.dto';
 
 type SafeUser = Omit<User, 'passwordHash'>;
 
 @Injectable()
 export class UsersService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly mailService: MailService,
+    ) {}
 
     private toSafeUser(user: User): SafeUser {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -24,13 +31,39 @@ export class UsersService {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
 
+    private generateCreatePasswordToken() {
+        const token = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        return { token, tokenHash, expiresAt };
+    }
+
+    private async createPasswordToken(userId: string): Promise<string> {
+        const { token, tokenHash, expiresAt } = this.generateCreatePasswordToken();
+
+        await this.prisma.createPasswordToken.create({
+            data: {
+                userId,
+                tokenHash,
+                expiresAt,
+            },
+        });
+
+        return token;
+    }
+
     async create(dto: CreateUserDto): Promise<SafeUser> {
         
-        if (dto.passwordType === PasswordType.AUTO) {
+        let active = true;
+        let shouldSendPasswordLink = false;
+
+        if (dto.passwordType === "LINK") {
             const password = await this.generatePassword();
             dto.password = password;
 
-            // send email with password
+            active = false;
+            shouldSendPasswordLink = true;
         } 
 
         const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -41,10 +74,56 @@ export class UsersService {
                 email: dto.email,
                 passwordHash,
                 role: dto.role ?? Role.COLABORATOR,
+                active,
             },
         });
+        
+        if (shouldSendPasswordLink) {
+            const company = await this.prisma.company.findFirst();
+            const token = await this.createPasswordToken(user.id);
+
+            await this.mailService.sendCreatePasswordEmail({
+                name: user.name,
+                email: user.email,
+                token,
+                companyName: company?.name ?? '',
+                companyShortName: company?.shortName ?? '',
+                logoUrl: company?.logoUrl ?? '',
+            });
+        }
 
         return this.toSafeUser(user);
+    }
+
+    async createPassword(dto: CreatePasswordDto): Promise<{ message: string }> {
+        const tokenHash = crypto.createHash('sha256').update(dto.token).digest('hex');
+        const now = new Date();
+
+        const tokenRecord = await this.prisma.createPasswordToken.findUnique({
+            where: { tokenHash },
+        });
+
+        if (!tokenRecord || tokenRecord.usedAt || tokenRecord.expiresAt < now) {
+            throw new BadRequestException('Token inválido ou expirado');
+        }
+
+        const passwordHash = await bcrypt.hash(dto.password, 10);
+
+        await this.prisma.$transaction([
+            this.prisma.user.update({
+                where: { id: tokenRecord.userId },
+                data: {
+                    passwordHash,
+                    active: true,
+                },
+            }),
+            this.prisma.createPasswordToken.update({
+                where: { id: tokenRecord.id },
+                data: { usedAt: now },
+            }),
+        ]);
+
+        return { message: 'Senha criada com sucesso' };
     }
 
     async findAll(filters: any): Promise<any> {

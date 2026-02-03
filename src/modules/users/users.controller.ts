@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
+import { CreatePasswordDto } from './dto/create-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 import { Roles } from 'src/common/decorators/role.decorator';
@@ -26,6 +27,11 @@ export class UsersController {
     @Post()
     create(@Body() dto: CreateUserDto) {
         return this.usersService.create(dto);
+    }
+
+    @Post('create-password')
+    createPassword(@Body() dto: CreatePasswordDto) {
+        return this.usersService.createPassword(dto);
     }
 
     @Get()
