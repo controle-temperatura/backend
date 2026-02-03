@@ -39,6 +39,11 @@ export class UsersController {
         return this.usersService.findAll(filters);
     }
 
+    @Get('admins')
+    getAdmins() {
+        return this.usersService.getAdmins();
+    }
+
     @Get('roles')
     getRoles() {
         return this.usersService.getRoles();

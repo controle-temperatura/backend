@@ -10,10 +10,7 @@ export class SectorsService {
 
     async create(dto: CreateSectorDto): Promise<Sector> {
         return this.prisma.sector.create({
-            data: {
-                name: dto.name,
-                responsibleUserId: dto.responsibleUserId,
-            },
+            data: { ...dto, active: dto.active ?? true },
         });
     }
 
@@ -96,6 +93,10 @@ export class SectorsService {
                     ? { disconnect: true }
                     : { connect: { id: dto.responsibleUserId } };
         }
+        if (dto.active !== undefined) data.active = dto.active;
+        if (dto.icon !== undefined) data.icon = dto.icon;
+        if (dto.description !== undefined) data.description = dto.description;
+        if (dto.measurementTimes !== undefined) data.measurementTimes = dto.measurementTimes;
 
         try {
             return await this.prisma.sector.update({ where: { id }, data });

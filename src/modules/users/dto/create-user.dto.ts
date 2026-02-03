@@ -1,5 +1,5 @@
 import { Role } from '@prisma/client';
-import { IsEmail, IsEnum, IsOptional, IsString, IsUrl, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, IsUrl, MinLength } from 'class-validator';
 
 export class CreateUserDto {
     @IsString()
@@ -24,4 +24,8 @@ export class CreateUserDto {
     @IsString()
     @IsEnum(["MANUAL", "LINK"])
     passwordType: string;
+
+    @IsOptional()
+    @IsBoolean()
+    active?: boolean;
 }

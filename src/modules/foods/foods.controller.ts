@@ -39,7 +39,7 @@ export class FoodsController {
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.ADMIN, Role.COLABORATOR)
+    @Roles(Role.ADMIN)
     @Patch(':id')
     update(@Param('id') id: string, @Body() dto: UpdateFoodDto) {
         return this.foodsService.update(id, dto);

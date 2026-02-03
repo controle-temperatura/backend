@@ -193,6 +193,7 @@ export class UsersService {
         if (dto.email !== undefined) data.email = dto.email;
         if (dto.role !== undefined) data.role = dto.role;
         if (dto.profilePicUrl !== undefined) data.profilePicUrl = dto.profilePicUrl;
+        if (dto.active !== undefined) data.active = dto.active;
 
         if (dto.password !== undefined) {
             data.passwordHash = await bcrypt.hash(dto.password, 10);
@@ -233,5 +234,10 @@ export class UsersService {
 
         const roleLables = { [Role.ADMIN]: 'Administrador', [Role.AUDITOR]: 'Auditor', [Role.COLABORATOR]: 'Colaborador' };
         return roles.map(role => ({ id: role, name: roleLables[role] }));
+    }
+
+    async getAdmins(): Promise<any[]> {
+        const admins = await this.prisma.user.findMany({ where: { role: Role.ADMIN, active: true } });
+        return admins.map(admin => ({ id: admin.id, name: admin.name }));
     }
 }

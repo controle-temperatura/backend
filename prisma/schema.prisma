@@ -92,6 +92,8 @@ model Sector {
 
   active Boolean @default(true)
 
+  description String?
+
   responsibleUserId String?
   responsibleUser   User?   @relation(fields: [responsibleUserId], references: [id])
 
@@ -99,6 +101,8 @@ model Sector {
   requiredTimes RequiredTimeSlot[]
 
   measurementTimes String[] @default(["12:00"])
+
+  icon String @default("utensils-crossed")
 
   createdAt DateTime @default(now())
 }

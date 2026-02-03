@@ -42,6 +42,9 @@ export class FoodsService {
                     select: { name: true }
                 }
             },
+            orderBy: {
+                name: 'asc',
+            },
         });
 
         const formattedFoods = foods.map((food) => ({
