@@ -70,6 +70,35 @@ export class SectorsService {
         };
     }
 
+    async findAllActive(filters: any): Promise<any> {
+        const { page, limit, ...searchFilters } = filters;
+        const pageNumber = parseInt(page) || 1;
+        const skip = (pageNumber - 1) * Number(limit) as number;
+
+        const totalCount = await this.prisma.sector.count({ where: { active: true } });
+
+        const sectors = await this.prisma.sector.findMany({ 
+            where: { active: true }, 
+            skip, 
+            take: Number(limit) as number,
+            select: {
+                id: true,
+                name: true,
+                icon: true,
+            }
+        });
+
+        return {
+            sectors,
+            pagination: {
+                page: pageNumber,
+                limit: Number(limit) as number,
+                totalRecords: sectors.length,
+                totalPages: Math.ceil(sectors.length / Number(limit) as number),
+            }
+        };
+    }
+
     async findOne(id: string): Promise<Sector> {
         const sector = await this.prisma.sector.findUnique({ where: { id } });
         if (!sector) throw new NotFoundException('Setor não encontrado');

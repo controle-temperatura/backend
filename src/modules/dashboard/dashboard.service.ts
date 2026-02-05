@@ -9,6 +9,12 @@ import Dayjs from 'src/common/utils/dayjs.config';
 export class DashboardService {
     constructor(private readonly prisma: PrismaService) {}
 
+    private parseTimeToMinutes(time: string): number | null {
+        const match = time.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+        if (!match) return null;
+        return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+    }
+
     async getDashboard(date: string) {
         const { startOfDay, endOfDay } = getDayBoundaries(date);
 
@@ -149,6 +155,10 @@ export class DashboardService {
 
     async getAlerts(date: string) {
         const { startOfDay, endOfDay } = getDayBoundaries(date);
+        const errorMarginMinutes = 15;
+        const now = Dayjs();
+        const isToday = Dayjs(date).isSame(now, 'day');
+        const currentMinutes = now.hour() * 60 + now.minute();
 
         const alerts = await this.prisma.alert.findMany({
             where: { createdAt: { gte: startOfDay, lte: endOfDay } },
@@ -205,6 +215,58 @@ export class DashboardService {
                 const resolvedAlert = groupedAlerts.find(alert => alert.type === "RESOLVED");
                 resolvedAlert?.data.push({ key: alert.temperatureRecord?.food.name, value: alert.correctedTemperature?.toFixed(1) + '°C' });
             } 
+        });
+
+        const pendingAlert = groupedAlerts.find(alert => alert.type === "PENDING");
+        const foods = await this.prisma.food.findMany({
+            where: { active: true, sector: { active: true } },
+            select: {
+                id: true,
+                name: true,
+                sector: { select: { measurementTimes: true } },
+            },
+        });
+
+        const foodIds = foods.map(food => food.id);
+        const records = await this.prisma.temperatureRecord.findMany({
+            where: {
+                foodId: { in: foodIds },
+                createdAt: { gte: startOfDay, lte: endOfDay },
+            },
+            select: { foodId: true, createdAt: true },
+        });
+
+        const recordsByFood = new Map<string, number[]>();
+        records.forEach(record => {
+            const minutes = record.createdAt.getHours() * 60 + record.createdAt.getMinutes();
+            const list = recordsByFood.get(record.foodId) ?? [];
+            list.push(minutes);
+            recordsByFood.set(record.foodId, list);
+        });
+
+        foods.forEach(food => {
+            const measurementTimes = food.sector.measurementTimes ?? [];
+            const foodRecordMinutes = recordsByFood.get(food.id) ?? [];
+
+            measurementTimes.forEach(time => {
+                const expectedMinutes = this.parseTimeToMinutes(time);
+                if (expectedMinutes === null) return;
+
+                if (isToday && currentMinutes < expectedMinutes + errorMarginMinutes) {
+                    return;
+                }
+
+                const hasRecord = foodRecordMinutes.some(
+                    minutes => Math.abs(minutes - expectedMinutes) <= errorMarginMinutes,
+                );
+
+                if (!hasRecord) {
+                    pendingAlert?.data.push({
+                        key: food.name,
+                        value: `Medição das ${time} pendente`,
+                    });
+                }
+            });
         });
 
         return groupedAlerts;

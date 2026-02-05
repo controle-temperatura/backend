@@ -33,6 +33,11 @@ export class SectorsController {
         return this.sectorsService.findAll(filters);
     }
 
+    @Get('active')
+    findAllActive(@Query() filters: any) {
+        return this.sectorsService.findAllActive(filters);
+    }
+
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN)
     @Get('filters')

@@ -14,7 +14,7 @@ export class TemperatureRecordsService {
 
     private async calcTemperatureErrorMargin(food: Food): Promise<number> {
         const temperatureDiff = food.tempMax - food.tempMin;
-        const errorMargin = temperatureDiff * 0.3;
+        const errorMargin = temperatureDiff * 0.1;
 
         return errorMargin;
     }
