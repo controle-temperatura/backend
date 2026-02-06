@@ -42,7 +42,8 @@ export class SectorsService {
                 measurementTimes: true,
                 responsibleUser: { select: { name: true } },
                 _count: { select: { foods: true } },
-                active: true
+                active: true,
+                icon: true
             },
         });
 
@@ -52,7 +53,8 @@ export class SectorsService {
             measurementTimes: sector.measurementTimes,
             responsibleUser: sector.responsibleUser?.name ?? null,
             foodsCount: sector._count.foods,
-            active: sector.active
+            active: sector.active,
+            icon: sector.icon
         }))
 
         return {
@@ -148,10 +150,11 @@ export class SectorsService {
         }
     }
 
-    async getFoods(id: string): Promise<Food[]> {
+    async getFoods(id: string): Promise<any> {
         const sector = await this.prisma.sector.findUnique({ where: { id }, include: { foods: true } });
         if (!sector) throw new NotFoundException('Setor não encontrado');
-        return sector.foods;
+
+        return sector;
     }
 }
 

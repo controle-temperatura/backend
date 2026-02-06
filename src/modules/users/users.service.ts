@@ -11,6 +11,7 @@ import { MailService } from '../mail/mail.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreatePasswordDto } from './dto/create-password.dto';
+import { getDayBoundaries } from 'src/common/utils/date.utils';
 
 type SafeUser = Omit<User, 'passwordHash'>;
 
@@ -239,5 +240,13 @@ export class UsersService {
     async getAdmins(): Promise<any[]> {
         const admins = await this.prisma.user.findMany({ where: { role: Role.ADMIN, active: true } });
         return admins.map(admin => ({ id: admin.id, name: admin.name }));
+    }
+
+    async getMeasurements(userId: string, date: string): Promise<number> {
+        const { startOfDay, endOfDay } = getDayBoundaries(date);
+        console.log(startOfDay, endOfDay, date);
+        const measurements = await this.prisma.temperatureRecord.count({ where: { userId, createdAt: { gte: startOfDay, lte: endOfDay } } });
+        console.log(measurements);
+        return measurements;
     }
 }

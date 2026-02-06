@@ -13,6 +13,7 @@ export class CompanyController {
 
     @Get()
     findAll() {
+        console.log('findAll');
         return this.companyService.findAll();
     }
 

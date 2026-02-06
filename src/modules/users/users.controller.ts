@@ -17,6 +17,7 @@ import { Roles } from 'src/common/decorators/role.decorator';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Role } from '@prisma/client';
+import { User } from 'src/common/decorators/user.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -47,6 +48,12 @@ export class UsersController {
     @Get('roles')
     getRoles() {
         return this.usersService.getRoles();
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('measurements')
+    getMeasurements(@User() user: { userId: string }, @Query('date') date: string) {
+        return this.usersService.getMeasurements(user.userId, date);
     }
 
     @Get(':id')

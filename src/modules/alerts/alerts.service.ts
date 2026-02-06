@@ -226,4 +226,39 @@ export class AlertsService {
             }
         };
     }
+
+    async getHome(date: any): Promise<any> {
+        const { startOfDay, endOfDay } = getDayBoundaries(date);
+
+        const alerts = await this.prisma.alert.findMany({ 
+            where: { createdAt: { gte: startOfDay, lte: endOfDay } },
+            include: {
+                temperatureRecord: {
+                    include: {
+                        food: {
+                            select: {
+                                name: true,
+                                tempMin: true,
+                                tempMax: true,
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const formattedAlerts = alerts.map(alert => (
+            {
+                id: alert.id,
+                item: alert.temperatureRecord?.food.name,
+                description: alert.danger === AlertDanger.CRITICAL ? 'registrou temperatura fora do limite.' : 'registrou temperatura próxima do limite.',
+                registeredTemperature: alert.temperatureRecord?.temperature.toFixed(1) + '°C',
+                recommendedTemperature: alert.temperatureRecord?.food.tempMin.toFixed(1) + '°C - ' + alert.temperatureRecord?.food.tempMax.toFixed(1) + '°C',
+                type: alert.danger,
+                title: alert.danger === AlertDanger.CRITICAL ? 'Temperatura fora do limite' : 'Temperatura próxima do limite'
+            }
+        ))
+
+        return formattedAlerts;
+    }
 }

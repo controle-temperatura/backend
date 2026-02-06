@@ -18,7 +18,7 @@ export class AlertsController {
     constructor(private readonly alertsService: AlertsService) {}
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.ADMIN, Role.AUDITOR)
+    @Roles(Role.ADMIN, Role.AUDITOR, Role.COLABORATOR)
     @Get()
     findAll(@Query() filters: any) {
         return this.alertsService.findAll(filters);
@@ -36,6 +36,11 @@ export class AlertsController {
     @Get('corrections')
     getCorrections(@Query('date') date: any, @Query('page') page: string, @Query('limit') limit: string) {
         return this.alertsService.getCorrections(date, page, limit);
+    }
+
+    @Get('home')
+    getHome(@Query('date') date: any) {
+        return this.alertsService.getHome(date);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
