@@ -135,6 +135,8 @@ model TemperatureRecord {
 
   alert Alert?
 
+  measurementTime String
+
   createdAt DateTime @default(now())
 }
 

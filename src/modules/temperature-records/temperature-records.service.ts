@@ -56,6 +56,7 @@ export class TemperatureRecordsService {
                     foodId: dto.foodId,
                     userId,
                     temperature: dto.temperature,
+                    measurementTime: Dayjs().format('HH:mm'),
                 },
             });
 

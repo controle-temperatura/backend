@@ -362,11 +362,11 @@ export class ReportsService {
         const nonResolvedCriticalPercentage = (nonResolvedCriticalRecords / reported) * 100;
         const nonCriticalPercentage = (nonCriticalRecords / reported) * 100;
 
-        if (nonResolvedCriticalRecords > 0 || nonCriticalPercentage > 5 || resolvedCriticalPercentage > 5) {
+        if (nonResolvedCriticalRecords > 0 || nonCriticalPercentage > 80 || resolvedCriticalPercentage > 10) {
             status = ComplianceStatus.NON_COMPLIANT;
         }
 
-        else if ((nonCriticalPercentage > 5 || resolvedCriticalPercentage > 5) && !(nonCriticalPercentage > 5 && resolvedCriticalPercentage > 5)) {
+        else if ((nonCriticalPercentage > 80 || resolvedCriticalPercentage > 10) && !(nonCriticalPercentage > 80 && resolvedCriticalPercentage > 10)) {
             status = ComplianceStatus.PARTIALLY_COMPLIANT;
         }
 
@@ -380,7 +380,8 @@ export class ReportsService {
             throw new BadRequestException('Nenhum registro encontrado para gerar o relatório');
         }
 
-        const html = this.generateConformityReportHTML(reportData, filters);
+        const company = await this.prisma.company.findFirst();
+        const html = this.generateConformityReportHTML(reportData, filters, company ?? undefined);
 
         const browser = await puppeteer.launch({
             headless: true,
@@ -429,7 +430,11 @@ export class ReportsService {
         }
     }
 
-    private generateConformityReportHTML(reportData: any, filters: any): string {
+    private generateConformityReportHTML(
+        reportData: any,
+        filters: any,
+        company?: { name?: string; logoUrl?: string }
+    ): string {
         const { 
             content, 
             complianceStatus, 
@@ -454,6 +459,8 @@ export class ReportsService {
 
         const dateRange = this.getDateRangeText(filters);
         const generatedDate = dayjs().format('DD/MM/YYYY [às] HH:mm');
+        const companyName = company?.name || 'Sistema de Controle de Temperatura';
+        const logoUrl = company?.logoUrl;
 
         return `
 <!DOCTYPE html>
@@ -482,6 +489,28 @@ export class ReportsService {
             padding: 30px;
             text-align: center;
             margin-bottom: 30px;
+        }
+
+        .company {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .company-logo {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: #ffffff;
+            padding: 4px;
+        }
+
+        .company-name {
+            font-size: 18px;
+            font-weight: 600;
         }
         
         .header h1 {
@@ -611,6 +640,10 @@ export class ReportsService {
 </head>
 <body>
     <div class="header">
+        <div class="company">
+            ${logoUrl ? `<img src="${logoUrl}" alt="Logo da empresa" class="company-logo" />` : ''}
+            <div class="company-name">${companyName}</div>
+        </div>
         <h1>Relatório de Conformidade de Temperatura</h1>
         <p>Sistema de Controle de Temperatura</p>
     </div>
@@ -723,7 +756,8 @@ export class ReportsService {
             throw new BadRequestException('Nenhum registro encontrado para gerar o relatório');
         }
 
-        const html = this.generatePeriodReportHTML(type, records, filters);
+        const company = await this.prisma.company.findFirst();
+        const html = this.generatePeriodReportHTML(type, records, filters, company ?? undefined);
 
         const browser = await puppeteer.launch({
             headless: true,
@@ -857,7 +891,12 @@ export class ReportsService {
         return { fileBuffer: xlsxBuffer, report, filename };
     }
 
-    private generatePeriodReportHTML(type: ReportType, records: any[], filters: any): string {
+    private generatePeriodReportHTML(
+        type: ReportType,
+        records: any[],
+        filters: any,
+        company?: { name?: string; logoUrl?: string }
+    ): string {
         const reportTitle = {
             [ReportType.DAILY]: 'Relatório Diário de Temperatura',
             [ReportType.WEEKLY]: 'Relatório Semanal de Temperatura',
@@ -867,6 +906,8 @@ export class ReportsService {
 
         const periodText = this.getPeriodText(type, filters);
         const generatedDate = dayjs().format('DD/MM/YYYY [às] HH:mm');
+        const companyName = company?.name || 'Sistema de Controle de Temperatura';
+        const logoUrl = company?.logoUrl;
 
         const totalRecords = records.length;
         const recordsWithAlerts = records.filter(r => r.alert).length;
@@ -924,6 +965,28 @@ export class ReportsService {
             padding: 20px;
             text-align: center;
             margin-bottom: 20px;
+        }
+
+        .company {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .company-logo {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: #ffffff;
+            padding: 4px;
+        }
+
+        .company-name {
+            font-size: 14px;
+            font-weight: 600;
         }
         
         .header h1 {
@@ -1032,6 +1095,10 @@ export class ReportsService {
 </head>
 <body>
     <div class="header">
+        <div class="company">
+            ${logoUrl ? `<img src="${logoUrl}" alt="Logo da empresa" class="company-logo" />` : ''}
+            <div class="company-name">${companyName}</div>
+        </div>
         <h1>${reportTitle[type]}</h1>
         <p>Sistema de Controle de Temperatura</p>
     </div>
