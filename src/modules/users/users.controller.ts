@@ -23,8 +23,8 @@ import { User } from 'src/common/decorators/user.decorator';
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(Role.ADMIN)
+    // @UseGuards(JwtAuthGuard, RolesGuard)
+    // @Roles(Role.ADMIN)
     @Post()
     create(@Body() dto: CreateUserDto) {
         return this.usersService.create(dto);
