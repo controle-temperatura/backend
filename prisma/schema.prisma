@@ -1,14 +1,214 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ===== ENUNS =====
+
+enum Role {
+  ADMIN
+  AUDITOR
+  COLABORATOR
+}
+
+enum TimeSlotType {
+  MORNING
+  LUNCH
+  AFTERNOON
+}
+
+enum ReportType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  CONFORMITY
+  CUSTOM
+}
+
+enum AlertType {
+  BELOW_MIN
+  ABOVE_MAX
+  NEXT_MIN
+  NEXT_MAX
+}
+
+enum AlertDanger {
+  CRITICAL
+  ALERT
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  PARTIALLY_COMPLIANT
+  NON_COMPLIANT
+}
+
+// ===== MODELS =====
+
+model User {
+  id            String @id @default(uuid())
+  name          String
+  email         String @unique
+  passwordHash  String
+  role          Role
+  profilePicUrl String?
+
+  active Boolean @default(true)
+
+  // relations
+  recordsTemperature TemperatureRecord[]
+  reports            Report[]
+  refreshTokens      RefreshToken[]
+  createPasswordTokens CreatePasswordToken[]
+
+  // reverse relation for Sector.responsibleUser
+  responsibleSectors Sector[]
+
+  // reverse relation for Alert.resolvedBy
+  resolvedAlerts Alert[]
+
+  createdAt DateTime @default(now())
+}
+
+model CreatePasswordToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Sector {
+  id   String @id @default(uuid())
+  name String
+
+  active Boolean @default(true)
+
+  description String?
+
+  responsibleUserId String?
+  responsibleUser   User?   @relation(fields: [responsibleUserId], references: [id])
+
+  foods         Food[]
+  requiredTimes RequiredTimeSlot[]
+
+  measurementTimes String[] @default(["12:00"])
+
+  icon String @default("utensils-crossed")
+
+  createdAt DateTime @default(now())
+}
+
+model Food {
+  id   String @id @default(uuid())
+  name String
+
+  active Boolean @default(true)
+
+  sectorId String
+  sector   Sector @relation(fields: [sectorId], references: [id])
+
+  tempMin Float
+  tempMax Float
+
+  temperatureRecords TemperatureRecord[]
+}
+
+model TemperatureRecord {
+  id String @id @default(uuid())
+
+  foodId String
+  food   Food   @relation(fields: [foodId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  temperature      Float
+
+  alert Alert?
+
+  measurementTime String
+
+  createdAt DateTime @default(now())
+}
+
+model Alert {
+  id       String  @id @default(uuid())
+  type     AlertType
+  danger   AlertDanger
+  resolved Boolean @default(false)
+
+  temperatureRecordId String?            @unique
+  temperatureRecord   TemperatureRecord? @relation(fields: [temperatureRecordId], references: [id])
+
+  resolvedById String?
+  resolvedBy   User?   @relation(fields: [resolvedById], references: [id])
+
+  correctiveAction     String?
+  resolvedAt           DateTime?
+  correctedTemperature Float?
+
+  createdAt DateTime @default(now())
+}
+
+model RequiredTimeSlot {
+  id String @id @default(uuid())
+
+  sectorId String
+  sector   Sector @relation(fields: [sectorId], references: [id])
+
+  type      TimeSlotType
+  limitTime DateTime
+
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id     String     @id @default(uuid())
+  type   ReportType
+  period String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  fileUrl String
+
+  complianceStatus ComplianceStatus
+
+  format String @default("PDF")
+
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Company {
+  id        String @id @default(uuid())
+  name      String
+  shortName String
+  logoUrl   String
+
+  cnpj    String
+  address String
+
+  contactMail  String
+  contactPhone String
 }
