@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -18,8 +18,8 @@ export class CompanyController {
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN)
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() dto: UpdateCompanyDto) {
+    @Put(':id')
+    put(@Param('id') id: string, @Body() dto: UpdateCompanyDto) {
         return this.companyService.update(id, dto);
     }
 
