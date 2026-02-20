@@ -89,14 +89,14 @@ export class SectorsService {
                 icon: true,
             }
         });
-
+        
         return {
             sectors,
             pagination: {
                 page: pageNumber,
                 limit: Number(limit) as number,
-                totalRecords: sectors.length,
-                totalPages: Math.ceil(sectors.length / Number(limit) as number),
+                totalRecords: totalCount,
+                totalPages: Math.ceil(totalCount / Number(limit) as number),
             }
         };
     }

@@ -244,9 +244,7 @@ export class UsersService {
 
     async getMeasurements(userId: string, date: string): Promise<number> {
         const { startOfDay, endOfDay } = getDayBoundaries(date);
-        console.log(startOfDay, endOfDay, date);
         const measurements = await this.prisma.temperatureRecord.count({ where: { userId, createdAt: { gte: startOfDay, lte: endOfDay } } });
-        console.log(measurements);
         return measurements;
     }
 }
