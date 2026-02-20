@@ -362,11 +362,11 @@ export class ReportsService {
         const nonResolvedCriticalPercentage = (nonResolvedCriticalRecords / reported) * 100;
         const nonCriticalPercentage = (nonCriticalRecords / reported) * 100;
 
-        if (nonResolvedCriticalRecords > 0 || nonCriticalPercentage > 80 || resolvedCriticalPercentage > 10) {
+        if (nonResolvedCriticalRecords > 0 || nonCriticalPercentage > 95 || resolvedCriticalPercentage > 10) {
             status = ComplianceStatus.NON_COMPLIANT;
         }
 
-        else if ((nonCriticalPercentage > 80 || resolvedCriticalPercentage > 10) && !(nonCriticalPercentage > 80 && resolvedCriticalPercentage > 10)) {
+        else if ((nonCriticalPercentage > 95 || resolvedCriticalPercentage > 10) && !(nonCriticalPercentage > 95 && resolvedCriticalPercentage > 10)) {
             status = ComplianceStatus.PARTIALLY_COMPLIANT;
         }
 
