@@ -49,6 +49,14 @@ export class AuthController {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
+        res.cookie('company_id', user.companyId, {
+            httpOnly: true,
+            secure: isProd,
+            sameSite,
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
         return { message: 'Logged in successfully' };
     }
 

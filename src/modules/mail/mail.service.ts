@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { google } from 'googleapis';
 import type { OAuth2Client } from 'google-auth-library';
-import { CreatePasswordEmailData, CreatePasswordEmailPayload } from './mail.types';
+import { CreatePasswordEmailData, CreatePasswordEmailPayload, BroadcastEmailPayload } from './mail.types';
 
 @Injectable()
 export class MailService {
@@ -69,10 +69,13 @@ export class MailService {
     }
 
     async sendCreatePasswordEmail(payload: CreatePasswordEmailPayload & { companyShortName: string }) {
+        const clientUrl = this.configService.get<string>('CLIENT_URLS')?.split(',')[0];
+
         const emailData: CreatePasswordEmailData = {
             name: payload.name,
-            createPasswordUrl: `${this.configService.get<string>('CLIENT_URL')}/create-password?token=${payload.token}`,
+            createPasswordUrl: `${clientUrl}/create-password?token=${payload.token}&companyId=${payload.companyId}`,
             companyName: payload.companyName,
+            companyShortName: payload.companyShortName,
             logoUrl: payload.logoUrl,
         };
         const template = fs.readFileSync(path.join(this.templatesPath, 'create-password.hbs'), 'utf8');
@@ -80,6 +83,14 @@ export class MailService {
         const html = compiledTemplate(emailData);
 
         await this.sendMail([payload.email, `Criar Senha - ${payload.companyShortName}`, html]);
+    }
+
+    async sendBroadcastEmail(payload: BroadcastEmailPayload) {
+        const template = fs.readFileSync(path.join(this.templatesPath, 'broadcast.hbs'), 'utf8');
+        const compiledTemplate = hbs.compile(template);
+        const html = compiledTemplate({ title: payload.title, message: payload.message });
+
+        await this.sendMail([payload.email, payload.title, html]);
     }
 
     private async sendMail([to, subject, html]: [string, string, string]): Promise<void> {

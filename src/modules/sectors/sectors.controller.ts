@@ -16,6 +16,8 @@ import { Role } from '@prisma/client';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { JwtAuthGuard } from '../auth/jwt/jwt.guard';
+import { User } from 'src/common/decorators/user.decorator';
+import { Company } from 'src/common/decorators/company.decorator';
 
 @Controller('sectors')
 export class SectorsController {
@@ -24,25 +26,28 @@ export class SectorsController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN)
     @Post()
-    create(@Body() dto: CreateSectorDto) {
-        return this.sectorsService.create(dto);
+    create(@Company() companyId: string, @Body() dto: CreateSectorDto) {
+        return this.sectorsService.create(companyId, dto);
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
     @Get()
-    findAll(@Query() filters: any) {
-        return this.sectorsService.findAll(filters);
+    findAll(@Company() companyId: string, @Query() filters: any) {
+        return this.sectorsService.findAll(companyId, filters);
     }
 
+    @UseGuards(JwtAuthGuard)
     @Get('active')
-    findAllActive(@Query() filters: any) {
-        return this.sectorsService.findAllActive(filters);
+    findAllActive(@Company() companyId: string, @Query() filters: any) {
+        return this.sectorsService.findAllActive(companyId, filters);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN)
     @Get('filters')
-    getForTable(@Query('foodsCount') foodsCount: string) {
-        return this.sectorsService.getForFilters(foodsCount);
+    getForTable(@Company() companyId: string, @Query('foodsCount') foodsCount: string) {
+        return this.sectorsService.getForFilters(companyId, foodsCount);
     }
 
     @Get(':id')

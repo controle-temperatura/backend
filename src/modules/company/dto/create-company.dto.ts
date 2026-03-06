@@ -1,4 +1,4 @@
-import { IsString } from "class-validator";
+import { IsEmail, IsString } from "class-validator";
 
 export class CreateCompanyDto {
     @IsString()
@@ -21,4 +21,10 @@ export class CreateCompanyDto {
 
     @IsString()
     contactPhone: string;
+
+    @IsEmail()
+    ownerEmail: string;
+
+    @IsString()
+    ownerName: string;
 }

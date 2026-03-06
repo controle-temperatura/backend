@@ -8,5 +8,6 @@ import { MailModule } from '../mail/mail.module';
   imports: [MailModule],
   providers: [UsersService, PrismaService],
   controllers: [UsersController],
+  exports: [UsersService],
 })
 export class UsersModule {}

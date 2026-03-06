@@ -8,13 +8,13 @@ import { UpdateSectorDto } from './dto/update-sector.dto';
 export class SectorsService {
     constructor(private readonly prisma: PrismaService) {}
 
-    async create(dto: CreateSectorDto): Promise<Sector> {
+    async create(companyId: string, dto: CreateSectorDto): Promise<Sector> {
         return this.prisma.sector.create({
-            data: { ...dto, active: dto.active ?? true },
+            data: { ...dto, active: dto.active ?? true, companyId },
         });
     }
 
-    async findAll(filters: any): Promise<any> {
+    async findAll(companyId: string, filters: any): Promise<any> {
         const { page, limit, ...searchFilters } = filters;
 
         if (searchFilters.active) searchFilters.active = searchFilters.active === 'true';
@@ -22,18 +22,18 @@ export class SectorsService {
         const pageNumber = parseInt(page) || 1;
         const skip = (pageNumber - 1) * Number(limit) as number;
 
-        const totalCount = await this.prisma.sector.count();
-        const totalRecords = await this.prisma.sector.count({ where: { ...searchFilters } });
-        const activeCount = await this.prisma.sector.count({ where: { active: true } });
+        const totalCount = await this.prisma.sector.count({ where: { companyId } });
+        const totalRecords = await this.prisma.sector.count({ where: { companyId, ...searchFilters } });
+        const activeCount = await this.prisma.sector.count({ where: { companyId, active: true } });
         
         const responsibleUsers = await this.prisma.sector.groupBy({
             by: ['responsibleUserId'],
-            where: { responsibleUserId: { not: null } },
+            where: { companyId, responsibleUserId: { not: null } },
         });
         const responsibleUsersCount = responsibleUsers.length;
 
         const sectors = await this.prisma.sector.findMany({
-            where: { ...searchFilters },
+            where: { companyId, ...searchFilters },
             skip,
             take: Number(limit) as number,
             select: {
@@ -72,15 +72,15 @@ export class SectorsService {
         };
     }
 
-    async findAllActive(filters: any): Promise<any> {
+    async findAllActive(companyId: string, filters: any): Promise<any> {
         const { page, limit, ...searchFilters } = filters;
         const pageNumber = parseInt(page) || 1;
         const skip = (pageNumber - 1) * Number(limit) as number;
 
-        const totalCount = await this.prisma.sector.count({ where: { active: true } });
+        const totalCount = await this.prisma.sector.count({ where: { active: true, companyId } });
 
         const sectors = await this.prisma.sector.findMany({ 
-            where: { active: true }, 
+            where: { companyId, active: true }, 
             skip, 
             take: Number(limit) as number,
             select: {
@@ -107,12 +107,12 @@ export class SectorsService {
         return sector;
     }
 
-    getForFilters(foodsCount: string): Promise<any[]> {
+    getForFilters(companyId: string, foodsCount: string): Promise<any[]> {
         const needsFoodsCount = foodsCount === 'true';
         if (needsFoodsCount) {
-            return this.prisma.sector.findMany({ where: { active: true }, select: { id: true, name: true, _count: { select: { foods: true } } } });
+            return this.prisma.sector.findMany({ where: { active: true, companyId }, select: { id: true, name: true, _count: { select: { foods: true } } } });
         }
-        return this.prisma.sector.findMany({ where: { active: true }, select: { id: true, name: true } });
+        return this.prisma.sector.findMany({ where: { active: true, companyId }, select: { id: true, name: true } });
     }
 
     async update(id: string, dto: UpdateSectorDto): Promise<Sector> {

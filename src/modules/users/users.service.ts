@@ -54,7 +54,7 @@ export class UsersService {
         return token;
     }
 
-    async create(dto: CreateUserDto): Promise<SafeUser> {
+    async create(dto: CreateUserDto, companyId?: string): Promise<SafeUser> {
         
         let active = true;
         let shouldSendPasswordLink = false;
@@ -71,6 +71,7 @@ export class UsersService {
 
         const user = await this.prisma.user.create({
             data: {
+                companyId,
                 name: dto.name,
                 email: dto.email,
                 passwordHash,
@@ -80,7 +81,7 @@ export class UsersService {
         });
         
         if (shouldSendPasswordLink) {
-            const company = await this.prisma.company.findFirst();
+            const company = await this.prisma.company.findUnique({ where: { id: companyId } });
             const token = await this.createPasswordToken(user.id);
 
             await this.mailService.sendCreatePasswordEmail({
@@ -90,6 +91,7 @@ export class UsersService {
                 companyName: company?.name ?? '',
                 companyShortName: company?.shortName ?? '',
                 logoUrl: company?.logoUrl ?? '',
+                companyId: company?.id ?? '',
             });
         }
 
@@ -127,7 +129,7 @@ export class UsersService {
         return { message: 'Senha criada com sucesso' };
     }
 
-    async findAll(filters: any): Promise<any> {
+    async findAll(companyId: string, filters: any): Promise<any> {
         const { page, limit, ...searchFilters } = filters;
 
         if (searchFilters.active) searchFilters.active = searchFilters.active === 'true';
@@ -135,14 +137,14 @@ export class UsersService {
         const pageNumber = parseInt(page) || 1;
         const skip = (pageNumber - 1) * Number(limit) as number;
 
-        const totalCount = await this.prisma.user.count();
-        const totalRecords = await this.prisma.user.count({ where: { ...searchFilters } });
-        const totalColaborators = await this.prisma.user.count({ where: { ...searchFilters, role: Role.COLABORATOR } });
-        const totalAdmins = await this.prisma.user.count({ where: { ...searchFilters, role: Role.ADMIN } });
-        const totalAuditors = await this.prisma.user.count({ where: { ...searchFilters, role: Role.AUDITOR } });
+        const totalCount = await this.prisma.user.count({ where: { companyId } });
+        const totalRecords = await this.prisma.user.count({ where: { companyId, ...searchFilters } });
+        const totalColaborators = await this.prisma.user.count({ where: { companyId, ...searchFilters, role: Role.COLABORATOR } });
+        const totalAdmins = await this.prisma.user.count({ where: { companyId, ...searchFilters, role: Role.ADMIN } });
+        const totalAuditors = await this.prisma.user.count({ where: { companyId, ...searchFilters, role: Role.AUDITOR } });
 
         const users = await this.prisma.user.findMany({ 
-            where: { ...searchFilters }, 
+            where: { companyId, ...searchFilters }, 
             skip, 
             take: Number(limit) as number,
             select: {
@@ -237,8 +239,8 @@ export class UsersService {
         return roles.map(role => ({ id: role, name: roleLables[role] }));
     }
 
-    async getAdmins(): Promise<any[]> {
-        const admins = await this.prisma.user.findMany({ where: { role: Role.ADMIN, active: true } });
+    async getAdmins(companyId: string): Promise<any[]> {
+        const admins = await this.prisma.user.findMany({ where: { companyId, role: Role.ADMIN, active: true } });
         return admins.map(admin => ({ id: admin.id, name: admin.name }));
     }
 

@@ -9,6 +9,7 @@ datasource db {
 // ===== ENUNS =====
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   AUDITOR
   COLABORATOR
@@ -46,6 +47,11 @@ enum ComplianceStatus {
   NON_COMPLIANT
 }
 
+enum BroadcastTarget {
+  ALL
+  COMPANY
+}
+
 // ===== MODELS =====
 
 model User {
@@ -56,21 +62,25 @@ model User {
   role          Role
   profilePicUrl String?
 
+  companyId String?
+  company   Company? @relation("CompanyUsers", fields: [companyId], references: [id], onDelete: SetNull)
+
   active Boolean @default(true)
 
-  // relations
   recordsTemperature TemperatureRecord[]
   reports            Report[]
   refreshTokens      RefreshToken[]
   createPasswordTokens CreatePasswordToken[]
 
-  // reverse relation for Sector.responsibleUser
   responsibleSectors Sector[]
 
-  // reverse relation for Alert.resolvedBy
   resolvedAlerts Alert[]
 
   createdAt DateTime @default(now())
+
+  ownedCompany Company? @relation("CompanyOwner")
+
+  @@index([companyId])
 }
 
 model CreatePasswordToken {
@@ -97,6 +107,9 @@ model Sector {
   responsibleUserId String?
   responsibleUser   User?   @relation(fields: [responsibleUserId], references: [id])
 
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
   foods         Food[]
   requiredTimes RequiredTimeSlot[]
 
@@ -105,6 +118,8 @@ model Sector {
   icon String @default("utensils-crossed")
 
   createdAt DateTime @default(now())
+
+  @@index([companyId])
 }
 
 model Food {
@@ -204,11 +219,34 @@ model Company {
   id        String @id @default(uuid())
   name      String
   shortName String
-  logoUrl   String
+  logoUrl   String?
 
   cnpj    String
   address String
 
   contactMail  String
   contactPhone String
+
+  active Boolean @default(true)
+
+  ownerId   String? @unique
+  owner   User?   @relation("CompanyOwner", fields: [ownerId], references: [id])
+
+  users User[] @relation("CompanyUsers")
+  sectors Sector[]
+
+  broadcastMessages BroadcastMessage[] // relacao obrigatoria do Prisma | nao utilizado
+}
+
+model BroadcastMessage {
+  id         String @id @default(uuid())
+  title      String 
+  message    String
+
+  createdAt  DateTime @default(now())
+
+  targetType BroadcastTarget
+
+  companyId  String?
+  company    Company? @relation(fields: [companyId], references: [id])
 }

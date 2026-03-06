@@ -6,6 +6,7 @@ import { User } from 'src/common/decorators/user.decorator';
 import { Role } from '@prisma/client';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/role.decorator';
+import { Company } from 'src/common/decorators/company.decorator';
 
 @Controller('temperature-records')
 export class TemperatureRecordsController {
@@ -27,7 +28,7 @@ export class TemperatureRecordsController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN, Role.AUDITOR)
     @Get('tables')
-    getForTable(@Query() filters: any) {
+    getForTable(@Company() companyId: string,@Query() filters: any) {
         return this.temperatureRecordsService.getForTable(filters);
     }
 

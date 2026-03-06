@@ -20,11 +20,11 @@ interface QueryFilters {
 export class AlertsService {
     constructor(private readonly prisma: PrismaService) {}
 
-    async findAll(filters: QueryFilters): Promise<Alert[]> {
+    async findAll(companyId: string,filters: QueryFilters): Promise<Alert[]> {
 
         const { resolved, danger, sectorId, date, startDate, endDate } = filters;
 
-        const dbQueryFilters: any = {};
+        const dbQueryFilters: any = { food: { sector: { companyId: companyId } } };
 
         if (date) {
             const { startOfDay, endOfDay } = getDayBoundaries(date);
@@ -120,17 +120,17 @@ export class AlertsService {
         return this.prisma.alert.update({ where: { id }, data: { resolved: true, correctiveAction: dto.correctiveAction, correctedTemperature: dto.correctedTemperature, resolvedBy: { connect: { id: userId } }, resolvedAt: new Date() } });
     }
 
-    async getCorrections(date: any, page: string, limit: string): Promise<any> {
+    async getCorrections(companyId: string, date: any, page: string, limit: string): Promise<any> {
 
         const { startOfDay, endOfDay } = getDayBoundaries(date);
 
         const pageNumber = parseInt(page) || 1;
         const skip = (pageNumber - 1) * Number(limit) as number;
 
-        const total = await this.prisma.alert.count({ where: { correctiveAction: { not: null }, createdAt: { gte: startOfDay, lte: endOfDay } } });
+        const total = await this.prisma.alert.count({ where: { correctiveAction: { not: null }, createdAt: { gte: startOfDay, lte: endOfDay }, temperatureRecord: { food: { sector: { companyId: companyId } } } } });
 
         const correctedAlerts = await this.prisma.alert.findMany({ 
-            where: { correctiveAction: { not: null }, createdAt: { gte: startOfDay, lte: endOfDay } },
+            where: { correctiveAction: { not: null }, createdAt: { gte: startOfDay, lte: endOfDay }, temperatureRecord: { food: { sector: { companyId: companyId } } } },
             skip,
             take: Number(limit) as number,
             select: {
@@ -175,16 +175,16 @@ export class AlertsService {
         };
     }
 
-    async getForTable(date: any, page: string, limit: string): Promise<any> {
+    async getForTable(companyId: string, date: any, page: string, limit: string): Promise<any> {
         const { startOfDay, endOfDay } = getDayBoundaries(date);
         
         const pageNumber = parseInt(page) || 1;
         const skip = (pageNumber - 1) * Number(limit) as number;
 
-        const total = await this.prisma.alert.count({ where: { resolved: false, createdAt: { gte: startOfDay, lte: endOfDay } } });
+        const total = await this.prisma.alert.count({ where: { resolved: false, createdAt: { gte: startOfDay, lte: endOfDay }, temperatureRecord: { food: { sector: { companyId: companyId } } } } });
 
         const pendingAlerts = await this.prisma.alert.findMany({
-            where: { resolved: false, createdAt: { gte: startOfDay, lte: endOfDay } },
+            where: { resolved: false, createdAt: { gte: startOfDay, lte: endOfDay }, temperatureRecord: { food: { sector: { companyId: companyId } } } },
             skip,
             take: Number(limit) as number,
             select: {
@@ -227,11 +227,11 @@ export class AlertsService {
         };
     }
 
-    async getHome(date: any): Promise<any> {
+    async getHome(companyId: string, date: any): Promise<any> {
         const { startOfDay, endOfDay } = getDayBoundaries(date);
 
         const alerts = await this.prisma.alert.findMany({ 
-            where: { createdAt: { gte: startOfDay, lte: endOfDay } },
+            where: { createdAt: { gte: startOfDay, lte: endOfDay }, temperatureRecord: { food: { sector: { companyId: companyId } } } },
             include: {
                 temperatureRecord: {
                     include: {

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -13,17 +13,24 @@ export class AuthService {
     ) {}
 
     async validateUser(email: string, password: string) {
-        const user = await this.prisma.user.findUnique({ where: { email } });
+        const user = await this.prisma.user.findUnique({
+            where: { email },
+            include: { company: true },
+        });
         if (!user) throw new UnauthorizedException('Credenciais inválidas');
 
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) throw new UnauthorizedException('Credenciais inválidas');
 
+        if (user.companyId && user.company && !user.company.active) {
+            throw new ForbiddenException('Empresa inativa');
+        }
+
         return user;
     }
 
     async login(user: User): Promise<{ access_token: string, refresh_token: string }> {
-        const payload = { sub: user.id, email: user.email };
+        const payload = { sub: user.id, email: user.email, companyId: user.companyId };
         const access_token = await this.jwt.signAsync(payload, { expiresIn: '15m' });
         const refresh_token = await this.generateRefreshToken(user.id);
         
@@ -74,11 +81,21 @@ export class AuthService {
             throw new UnauthorizedException('Token de atualização inválido ou expirado');
         }
 
+        if (validToken.user.companyId) {
+            const company = await this.prisma.company.findUnique({
+                where: { id: validToken.user.companyId },
+                select: { active: true },
+            });
+            if (company && !company.active) {
+                throw new ForbiddenException('Empresa inativa');
+            }
+        }
+
         await this.prisma.refreshToken.delete({
             where: { id: validToken.id },
         });
 
-        const payload = { sub: validToken.user.id, email: validToken.user.email };
+        const payload = { sub: validToken.user.id, email: validToken.user.email, companyId: validToken.user.companyId };
         const access_token = await this.jwt.signAsync(payload, { expiresIn: '15m' });
         const new_refresh_token = await this.generateRefreshToken(validToken.user.id);
 

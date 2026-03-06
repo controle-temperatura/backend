@@ -15,6 +15,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { FilterOptionsModule } from './modules/filter-options/filter-options.module';
 import { CompanyModule } from './modules/company/company.module';
 import { MailModule } from './modules/mail/mail.module';
+import { BroadcastsModule } from './modules/broadcasts/broadcasts.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { MailModule } from './modules/mail/mail.module';
     FilterOptionsModule,
     CompanyModule,
     MailModule,
+    BroadcastsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

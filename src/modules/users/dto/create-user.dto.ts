@@ -28,4 +28,8 @@ export class CreateUserDto {
     @IsOptional()
     @IsBoolean()
     active?: boolean;
+
+    @IsOptional()
+    @IsString()
+    companyId?: string;
 }

@@ -6,6 +6,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { User } from 'src/common/decorators/user.decorator';
 import { AlertDanger, Role } from '@prisma/client';
 import { Roles } from 'src/common/decorators/role.decorator';
+import { Company } from 'src/common/decorators/company.decorator';
 
 interface QueryFilters {
     resolved?: boolean;
@@ -20,27 +21,28 @@ export class AlertsController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN, Role.AUDITOR, Role.COLABORATOR)
     @Get()
-    findAll(@Query() filters: any) {
-        return this.alertsService.findAll(filters);
+    findAll(@Company() companyId: string, @Query() filters: any) {
+        return this.alertsService.findAll(companyId, filters);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN, Role.AUDITOR)
     @Get('tables')
-    getForTable(@Query('date') date: any, @Query('page') page: string, @Query('limit') limit: string) {
-        return this.alertsService.getForTable(date, page, limit);
+    getForTable(@Company() companyId: string, @Query('date') date: any, @Query('page') page: string, @Query('limit') limit: string) {
+        return this.alertsService.getForTable(companyId, date, page, limit);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN, Role.AUDITOR)
     @Get('corrections')
-    getCorrections(@Query('date') date: any, @Query('page') page: string, @Query('limit') limit: string) {
-        return this.alertsService.getCorrections(date, page, limit);
+    getCorrections(@Company() companyId: string, @Query('date') date: any, @Query('page') page: string, @Query('limit') limit: string) {
+        return this.alertsService.getCorrections(companyId, date, page, limit);
     }
 
+    @UseGuards(JwtAuthGuard)
     @Get('home')
-    getHome(@Query('date') date: any) {
-        return this.alertsService.getHome(date);
+    getHome(@Company() companyId: string, @Query('date') date: any) {
+        return this.alertsService.getHome(companyId, date);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)

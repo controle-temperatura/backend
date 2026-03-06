@@ -9,12 +9,23 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
     const config = app.get(ConfigService);
-    const clientUrl = config.get<string>('CLIENT_URL');
+    const allowedOrigins = config.get<string>('CLIENT_URLS')?.split(',');
 
     app.setGlobalPrefix('api');
 
     app.enableCors({
-        origin: true,
+        origin: (origin, callback) => {
+            if (!origin) {
+                return callback(null, true);
+            }
+
+            if (allowedOrigins?.includes(origin)) {
+                return callback(null, true);
+            }
+
+            return callback(new Error('Not allowed by CORS'));
+        },
+        // origin: true,
         credentials: true,
     });
 

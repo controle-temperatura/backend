@@ -381,8 +381,8 @@ export class ReportsService {
         }
 
         const company = await this.prisma.company.findFirst();
-        const html = this.generateConformityReportHTML(reportData, filters, company ?? undefined);
-
+        const html = this.generateConformityReportHTML(reportData, filters, company ? { ...company, logoUrl: company.logoUrl ?? undefined } : undefined);
+        
         const browser = await puppeteer.launch({
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -757,7 +757,7 @@ export class ReportsService {
         }
 
         const company = await this.prisma.company.findFirst();
-        const html = this.generatePeriodReportHTML(type, records, filters, company ?? undefined);
+        const html = this.generatePeriodReportHTML(type, records, filters, company ? { ...company, logoUrl: company.logoUrl ?? undefined } : undefined);
 
         const browser = await puppeteer.launch({
             headless: true,
